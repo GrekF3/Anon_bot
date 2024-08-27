@@ -28,7 +28,6 @@ async def show_main_menu(update: Update) -> None:
     keyboard = [
         [KeyboardButton("🔗 Сгенерировать ссылку 🔗")],
         [KeyboardButton("👤 Профиль"), KeyboardButton("Подписка 💰")],
-        [KeyboardButton("💼 Реферальная система 💼")],
         [KeyboardButton("📕 Политика конфиденциальности 📕")]
     ]
 

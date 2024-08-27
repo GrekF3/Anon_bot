@@ -2,3 +2,4 @@
 /anon_bot/users.db
 /anon_bot/config.py
 /file_sharing/db.sqlite3
+anon_support_bot/database/support_users.db

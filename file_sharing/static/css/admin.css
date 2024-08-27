@@ -1,0 +1,71 @@
+body {
+    background-color: #f8f9fa; /* Цвет фона */
+}
+.sidebar {
+    background-color: #343a40; /* Цвет боковой панели */
+    color: white; /* Цвет текста боковой панели */
+    min-height: 100vh; /* Минимальная высота боковой панели */
+}
+.sidebar .nav-link {
+    color: #adb5bd; /* Цвет ссылок в боковой панели */
+}
+.sidebar .nav-link:hover {
+    color: white; /* Цвет ссылок при наведении */
+    background-color: #495057; /* Цвет фона при наведении */
+}
+.card {
+    margin-bottom: 20px; /* Отступы между карточками */
+    border-radius: 8px; /* Закругленные углы карточек */
+}
+.hidden {
+    display: none !important; /* Скрытие элементов */
+}
+.header {
+    background-color: #007bff; /* Цвет заголовка */
+    color: white; /* Цвет текста заголовка */
+    padding: 15px; /* Отступы */
+    border-radius: 8px 8px 0 0; /* Закругленные углы */
+}
+.list-group-item {
+    border-radius: 8px; /* Закругленные углы элементов списка */
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        display: none; /* Скрыть боковую панель на мобильных */
+    }
+
+    .mobile-sidebar {
+        display: block; /* Показать мобильную панель */
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #f8f9fa;
+        box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        z-index: 1000;
+    }
+
+    .mobile-sidebar ul {
+        padding: 20px;
+    }
+
+    .mobile-sidebar .close-btn {
+        display: block;
+        cursor: pointer;
+        font-size: 1.5rem;
+    }
+
+    .admin-section {
+        padding: 10px;
+    }
+
+    .admin-section h2 {
+        font-size: 1.5rem;
+    }
+
+    .list-group-item {
+        font-size: 0.9rem; /* Уменьшить размер шрифта для мобильных */
+    }
+}
