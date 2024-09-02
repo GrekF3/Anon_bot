@@ -19,18 +19,3 @@ class File(models.Model):
     def __str__(self):
         return f"{self.file.name} ({self.get_type_display()})"
 
-
-
-class BotUser(models.Model):
-    user_id = models.IntegerField(unique=True)
-    username = models.CharField(max_length=255)
-    subscription_type = models.CharField(max_length=50, default='FREE')
-    generated_links = models.IntegerField(default=0)
-    join_date = models.DateTimeField()
-    is_admin = models.BooleanField(default=False)
-    user_consent = models.BooleanField(default=False)
-    is_blocked = models.BooleanField(default=False)
-
-    class Meta:
-        db_table = 'users'  # Название таблицы в базе данных `users.db`
-        managed = False  # Django не будет управлять этой таблицей (создавать или изменять ее)

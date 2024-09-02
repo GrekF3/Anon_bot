@@ -28,6 +28,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
+ANON_SUPPORT_TOKEN = '6793726422:AAGaEZ588yVlgKa7OlcNjDwu2RV5t2Z9yQg'
+ANON_TOKEN = '7375576690:AAFP_UV4WWREIDdPINtfEQFYEiks088J2Pw'
 
 # Application definition
 
@@ -39,7 +41,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'file_manager',
+    'anon_bot_manager',
+    'anon_support_manager',
 ]
+
+ASGI_APPLICATION = 'file_manager.asgi.application'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -69,21 +75,17 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'file_sharing.wsgi.application'
-DATABASE_ROUTERS = ['file_manager.db_router.UsersDBRouter']
-BOT_TOKEN = "7375576690:AAFP_UV4WWREIDdPINtfEQFYEiks088J2Pw"
-# Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    },
-    'users_db': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, '..', 'anon_bot', 'users.db'),  # Путь к users.db
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'anonloader',
+        'USER': 'skyhelper',
+        'PASSWORD': 'NezoX228008!',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
