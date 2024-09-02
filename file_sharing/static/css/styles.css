@@ -1,54 +1,105 @@
-
-
+/* Основные стили */
 body {
-    font-family: Arial, sans-serif;
-    background-color: #161616;
+    background-color: #121212;
+    color: #ffffff;
+    font-family: 'Arial', sans-serif;
     margin: 0;
     padding: 0;
 }
 
+/* Контейнер для форм */
 .container {
-    width: 90%;
     max-width: 600px;
-    margin: 50px auto;
-    background: #fff;
+    margin: 20px auto; /* Отступ сверху и снизу */
     padding: 20px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    background-color: #1e1e1e;
     border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
 }
 
-h1 {
+/* Заголовки внутри контейнера */
+.container h1 {
+    font-size: 24px;
+    margin-bottom: 20px; /* Отступ снизу */
+}
+
+/* Стили кнопок */
+.btn {
+    background-color: #6200ea;
+    border: none;
+    color: white;
+    padding: 12px 24px; /* Увеличены отступы */
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    display: inline-block;
+    margin-top: 10px; /* Отступ сверху */
     text-align: center;
-    color: #333;
+    width: 100%; /* Полная ширина */
 }
 
+.btn:hover {
+    background-color: #3700b3;
+}
+
+/* Стиль для статуса сообщений */
+.status-message {
+    margin-top: 10px;
+}
+
+/* Стиль для предупреждений */
+.alert {
+    padding: 15px;
+    margin-top: 10px;
+    border-radius: 4px;
+}
+
+/* Стили для успешных и ошибочных сообщений */
+.alert-success {
+    background-color: #4caf50;
+    color: white;
+}
+
+.alert-danger {
+    background-color: #f44336;
+    color: white;
+}
+
+/* Стили для ввода файлов */
+input[type="file"] {
+    background-color: #282828;
+    color: #ffffff;
+    padding: 10px;
+    border: 1px solid #6200ea;
+    border-radius: 4px;
+    margin-top: 10px; /* Отступ сверху */
+    cursor: pointer; /* Курсор при наведении */
+}
+
+/* Стили для ввода текста */
+input[type="text"],
+input[type="password"] {
+    background-color: #282828;
+    color: #ffffff;
+    padding: 10px;
+    border: 1px solid #6200ea;
+    border-radius: 4px;
+    margin-top: 10px; /* Отступ сверху */
+}
+
+/* Стили для меток */
+label {
+    margin-top: 10px;
+    display: block; /* Блоковое отображение для меток */
+}
+
+/* Для форм в целом */
 form {
     display: flex;
-    flex-direction: column;
+    flex-direction: column; /* Вертикальное расположение элементов */
 }
 
-form input[type="text"] {
-    padding: 10px;
-    margin: 10px 0;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
-
-button {
-    padding: 10px;
-    background: #5cb85c;
-    border: none;
-    border-radius: 4px;
-    color: white;
-    cursor: pointer;
-}
-
-button:hover {
-    background: #4cae4c;
-}
-
-.status-message {
-    text-align: center;
-    color: #007bff;
-    margin-top: 20px;
+/* Устранение наложений между контейнерами */
+.mt-5 {
+    margin-top: 40px; /* Увеличенный отступ для разделения */
 }

@@ -46,7 +46,6 @@ async def operator_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [KeyboardButton("Начать смену")],
         [KeyboardButton("Проверить тикеты")],
-        [KeyboardButton("Закончить смену")],
     ]
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
     await update.message.reply_text("Выберите действие:", reply_markup=reply_markup)
@@ -55,12 +54,16 @@ async def start_shift(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Начинает смену оператора."""
     user_id = update.effective_user.id
     operator = await get_operator_by_user(await get_or_create_user(user_id, update.effective_user.username))
-
+    keyboard = [
+        [KeyboardButton("Закончить смену")],
+        [KeyboardButton("Проверить тикеты")],
+    ]
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
     if operator:
         operator.is_active = True
         await sync_to_async(operator.save)()
-        await operator_menu(update, context)
-        await update.message.reply_text("Смена начата. Вы можете получать тикеты.")
+        await send_available_tickets(update, context)
+        await update.message.reply_text("Смена начата.", reply_markup=reply_markup)
     else:
         await update.message.reply_text("Вы не являетесь оператором.")
 
@@ -81,13 +84,6 @@ async def send_available_tickets(update: Update, context: ContextTypes.DEFAULT_T
     """Отправляет доступные тикеты активным операторам."""
     available_tickets = await sync_to_async(list)(Ticket.objects.filter(status='new', assigned_user__isnull=True))
     active_operators = await sync_to_async(list)(Operator.objects.filter(is_active=True))
-
-    if not active_operators:
-        await update.message.reply_text("Нет доступных операторов.")
-        return
-    if not available_tickets:
-        await update.message.reply_text("Нет доступных тикетов.")
-        return
 
     for operator in active_operators:
         user = await sync_to_async(lambda: operator.user)()
@@ -144,6 +140,10 @@ async def handle_user_message(update: Update, context: ContextTypes.DEFAULT_TYPE
     if open_ticket:
         ticket_id = await sync_to_async(lambda: open_ticket.ticket_id)()
         operator_user = await sync_to_async(lambda: open_ticket.assigned_user)()
+        
+        # Сохранение сообщения в истории тикета
+        await sync_to_async(open_ticket.add_message)(user, question)
+        
         if operator_user:
             keyboard = [[InlineKeyboardButton("Завершить диалог", callback_data=f"end_dialog_{ticket_id}")]]
             reply_markup = InlineKeyboardMarkup(keyboard)
@@ -158,6 +158,10 @@ async def handle_user_message(update: Update, context: ContextTypes.DEFAULT_TYPE
             status='new',
             created_at=timezone.now()
         )
+        
+        # Сохранение сообщения в истории нового тикета
+        await sync_to_async(ticket.add_message)(user, question)
+        
         await notify_operators(context, ticket.ticket_id, user_id, question)
         await update.message.reply_text("Ваш вопрос был зарегистрирован. Ожидайте ответа от оператора.")
 
@@ -174,6 +178,11 @@ async def handle_operator_message(update: Update, context: ContextTypes.DEFAULT_
 
     ticket = assigned_tickets[0]
     ticket_user = await sync_to_async(lambda: ticket.user.user_id)()
+
+    # Сохранение сообщения оператора в истории тикета
+    operator = await sync_to_async(lambda: ticket.assigned_user)()
+    await sync_to_async(ticket.add_message)(operator, message_text)
+
     await context.bot.send_message(chat_id=ticket_user, text=f"{message_text}")
 
 async def notify_operators_of_user_message(context: ContextTypes.DEFAULT_TYPE, ticket_id: int, user_id: int, question: str) -> None:
@@ -251,7 +260,7 @@ async def take_ticket_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
             await sync_to_async(ticket.save)()
-            await query.edit_message_text(f"Вы взяли тикет #{ticket_id} в работу.\n\n Вопрос:{question}", reply_markup=reply_markup)
+            await query.edit_message_text(f"Вы взяли тикет #{ticket_id} в работу.\n\n Вопрос: {question}", reply_markup=reply_markup)
         else:
             await query.edit_message_text("Этот тикет уже взят в работу или недоступен.")
     except (ValueError, Ticket.DoesNotExist):

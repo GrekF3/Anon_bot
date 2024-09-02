@@ -40,12 +40,15 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'jsoneditor',
     'file_manager',
     'anon_bot_manager',
     'anon_support_manager',
 ]
 
 ASGI_APPLICATION = 'file_manager.asgi.application'
+JSON_EDITOR_JS = 'https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/8.6.4/jsoneditor.js'
+JSON_EDITOR_CSS = 'https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/8.6.4/jsoneditor.css'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

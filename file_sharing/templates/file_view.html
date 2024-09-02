@@ -23,15 +23,28 @@
             {% csrf_token %}
             {{ form.unique_key.label_tag }}
             {{ form.unique_key }}
-            <button type="submit">Показать файл</button>
+            <button type="submit" class="btn">Показать файл</button>
         </form>
-
+    
         {% if error_message %}
-            <p class="status-message" style="color: red;">{{ error_message }}</p>
+            <p class="status-message alert alert-danger">{{ error_message }}</p>
         {% endif %}
     </div>
-
-
+    
+    <div class="container mt-5">
+        <h1>Загрузите файл:</h1>
+        <form method="post" enctype="multipart/form-data" id="uploadForm">
+            {% csrf_token %}
+            {{ file_form.file.label_tag }}
+            {{ file_form.file }}
+            <button type="submit" class="btn">Загрузить файл</button>
+        </form>
+        <div id="uploadStatus" class="status-message">
+            {% if error_file_message %}
+                <p class="status-message alert alert-danger">{{ error_file_message }}</p>
+            {% endif %}
+        </div>
+    </div>
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             const originalTitle = document.title; // Сохранение оригинального заголовка
@@ -39,11 +52,11 @@
             const changeInterval = 100; // Интервал между изменениями символов в миллисекундах
             const transitionDuration = 2000; // Длительность ожидания перед изменением заголовка
             const endDelay = 2000; // Дополнительная задержка перед повторением цикла
-        
+
             function generateRandomCharacter() {
                 return characters.charAt(Math.floor(Math.random() * characters.length));
             }
-        
+
             function animateTitleToRandom(index = 0) {
                 if (index < originalTitle.length) {
                     // Меняем одну букву заголовка на случайный символ и оставляем остальные символы
@@ -54,7 +67,7 @@
                     animateTitleToOriginal(originalTitle.length - 1);
                 }
             }
-        
+
             function animateTitleToOriginal(index) {
                 if (index >= 0) {
                     // Восстанавливаем одну букву заголовка с конца
@@ -65,7 +78,7 @@
                     setTimeout(startCycle, transitionDuration + endDelay);
                 }
             }
-        
+
             function startCycle() {
                 // Сначала держим оригинальный заголовок в течение 2 секунд
                 setTimeout(() => {
@@ -73,20 +86,10 @@
                     animateTitleToRandom();
                 }, transitionDuration);
             }
-        
+
             // Запуск первого цикла
             startCycle();
         });
-        
-        
-    </script>
-    <script>
-        const form = document.getElementById('fileForm');
-        const statusMessage = document.getElementById('statusMessage');
 
-        form.onsubmit = function() {
-            statusMessage.style.display = 'block';
-        }
-    </script>
 </body>
 </html>
