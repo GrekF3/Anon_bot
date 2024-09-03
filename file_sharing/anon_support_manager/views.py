@@ -10,7 +10,10 @@ def support_panel_view(request):
     print("support_panel_view called")
     
     # Получение всех тикетов и операторов
-    tickets = Ticket.objects.all()
+    open_tickets = Ticket.objects.filter(status='new').order_by('-created_at')  # Открытые тикеты
+    in_progress_tickets = Ticket.objects.filter(status='in_progress').order_by('-created_at')  # Тикеты в работе
+    closed_tickets = Ticket.objects.filter(status='closed').order_by('-created_at')  # Закрытые тикеты
+
     operators = Operator.objects.all()
     
     if request.method == 'POST':
@@ -46,6 +49,8 @@ def support_panel_view(request):
 
     return render(request, 'bot_admin_panel.html', {
         'section':'support_panel',
-        'tickets': tickets,
+        'open_tickets': open_tickets,
+        'in_progress_tickets': in_progress_tickets,
+        'closed_tickets': closed_tickets,
         'operators': operators,
     })

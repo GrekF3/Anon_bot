@@ -17,34 +17,62 @@
     <title>AnonLoader | Файл</title>
 </head>
 <body>
-    <!-- file_detail.html -->
     <div class="container">
-        <h1>Ваш файл</h1>
+        <h1>Ваш файл готов</h1>
         <p>Ключ доступа: <strong>{{ file.unique_key }}</strong></p>
         <p>Дата загрузки: {{ file.created_at }}</p>
-
+        <p>Размер файла: {{ file_size }} байт</p>
+        <p>Расширение файла: {{ file.mime_type }}</p>
+    
+        {% if file.icon %}  <!-- Проверка, есть ли иконка -->
+            <div>
+                <img src="{{ file.icon.url }}" alt="Иконка файла" style="width: 50px; height: 50px;">  <!-- Отображение иконки -->
+            </div>
+        {% endif %}
+    
         {% if file.type == 'image' or file.type == 'image_text' %}
             <img src="data:image/jpeg;base64,{{ image_data }}" alt="Изображение" style="max-width: 100%; height: auto;">
             {% if file.type == 'image_text' %}
                 <p>{{ file.text }}</p>
             {% endif %}
+            <a href="{% url 'file_download' file.unique_key %}" class="btn btn-primary" download>Скачать файл</a>
+        
         {% elif file.type == 'video' %}
             <video controls style="max-width: 100%; height: auto;">
-                <source src="{{ file_url }}" type="video/mp4">
+                <source src="data:video/mp4;base64,{{ video_data }}" type="video/mp4">
                 Ваш браузер не поддерживает видео.
             </video>
+            <a href="{% url 'file_download' file.unique_key %}" class="btn btn-primary" download>Скачать видео</a>
+        
+        {% elif file.type == 'file' %}
+            <p>Это обычный файл. Вы можете скачать его ниже:</p>
+            <a href="{% url 'file_download' file.unique_key %}" class="btn btn-primary" download>Скачать файл</a>
+        
         {% else %}
-            <a href="{{ file_url }}" download class="btn btn-primary">Скачать файл</a>
+            <p>Неизвестный тип файла.</p>
         {% endif %}
     </div>
 </body>
 <script>
+    window.addEventListener('beforeunload', function () {
+        fetch('/delete_file/', {
+            method: 'POST',
+            body: JSON.stringify({ key: '{{ file.unique_key }}' }),
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        });
+    });
+</script>
+<script>
+    // Ваш JavaScript код остается без изменений
     document.addEventListener("DOMContentLoaded", function() {
-        const originalTitle = document.title; // Сохранение оригинального заголовка
+        const originalTitle = document.title;
         const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        const changeInterval = 100; // Интервал между изменениями символов в миллисекундах
-        const transitionDuration = 2000; // Длительность ожидания перед изменением заголовка
-        const endDelay = 2000; // Дополнительная задержка перед повторением цикла
+        const changeInterval = 100;
+        const transitionDuration = 2000;
+        const endDelay = 2000;
     
         function generateRandomCharacter() {
             return characters.charAt(Math.floor(Math.random() * characters.length));
@@ -52,39 +80,29 @@
     
         function animateTitleToRandom(index = 0) {
             if (index < originalTitle.length) {
-                // Меняем одну букву заголовка на случайный символ и оставляем остальные символы
                 document.title = document.title.substring(0, index) + generateRandomCharacter() + originalTitle.substring(index + 1);
                 setTimeout(() => animateTitleToRandom(index + 1), changeInterval);
             } else {
-                // Начинаем восстанавливать заголовок в обратном направлении
                 animateTitleToOriginal(originalTitle.length - 1);
             }
         }
     
         function animateTitleToOriginal(index) {
             if (index >= 0) {
-                // Восстанавливаем одну букву заголовка с конца
                 document.title = document.title.substring(0, index) + originalTitle.charAt(index) + document.title.substring(index + 1);
                 setTimeout(() => animateTitleToOriginal(index - 1), changeInterval);
             } else {
-                // Ожидание перед следующим циклом с дополнительной задержкой
                 setTimeout(startCycle, transitionDuration + endDelay);
             }
         }
     
         function startCycle() {
-            // Сначала держим оригинальный заголовок в течение 2 секунд
             setTimeout(() => {
-                // Затем запускаем анимацию изменения заголовка
                 animateTitleToRandom();
             }, transitionDuration);
         }
     
-        // Запуск первого цикла
         startCycle();
     });
-    
-    
 </script>
-
 </html>

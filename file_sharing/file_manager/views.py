@@ -1,220 +1,304 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from .models import File
 from .forms import UniqueKeyForm, UploadFileForm
-from django.http import JsonResponse, HttpResponse
+from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.views.decorators.csrf import csrf_exempt
-from django.conf import settings
-from cryptography.fernet import Fernet
-from django.urls import reverse
-import base64
 from django.core.files.base import ContentFile
 import os
+import json
+import mimetypes
+import uuid, base64
+from cryptography.fernet import Fernet
 
-
-@csrf_exempt
-def upload_file(request):
-    print("upload_file called")
-    error_message = None
-    success_message = None
-
-    if request.method == 'POST':
-        print("Received POST request")
-        print("POST data:", request.POST)
-        print("FILES data:", request.FILES)
-        
-        try:
-            unique_key = request.POST['key']
-            file = request.FILES.get('file')
-            lifetime = request.POST['lifetime']
-            encryption_key = request.POST['encryption_key']
-            file_type = request.POST.get('type', 'file')
-            text = request.POST.get('text', '')
-            chat_id = request.POST.get('chat_id')
-
-            if not file:
-                print("No file found in request")
-                error_message = 'Файл не был загружен.'
-                return render(request, 'upload_file.html', {
-                    'error_message': error_message
-                })
-
-            print("Creating File object")
-            new_file = File.objects.create(
-                unique_key=unique_key,
-                file=file,
-                encryption_key=encryption_key,
-                type=file_type,
-                text=text if file_type == 'image_text' else None,
-                chat_id=chat_id
-            )
-
-            print("File object created:", new_file)
-            file_url = request.build_absolute_uri(reverse('download_file', args=[unique_key]))
-            print("File URL generated:", file_url)
-
-            success_message = 'Файл успешно загружен!'
-            return render(request, 'upload_file.html', {
-                'success_message': success_message,
-                'file_url': file_url
-            })
-
-        except KeyError as e:
-            print("KeyError occurred:", e)
-            error_message = f'Отсутствует поле: {str(e)}'
-            return render(request, 'upload_file.html', {
-                'error_message': error_message
-            })
-
-    # Если не POST запрос, просто отобразим пустую форму
-    return render(request, 'upload_file.html', {})
-
-
+# Вспомогательная функция для удаления файла
 def delete_file(file_record):
-    print("delete_file called for file:", file_record)
     file_path = file_record.file.path
     file_record.delete()
     if os.path.exists(file_path):
-        print("Deleting file from filesystem:", file_path)
         os.remove(file_path)
 
+@csrf_exempt
+def upload_file(request):
+    import time
+    if request.method == 'POST':
+        uploaded_file = request.FILES.get('file')
+        unique_key = request.POST.get('key')
+        file_type = request.POST.get('type')
+        text = request.POST.get('text', '')
+        mime_type = request.POST.get('mime_type')
+                
+        if uploaded_file and unique_key and file_type:
+            try:
+                # Чтение содержимого файла
+                file_data = uploaded_file.read()
+                print(f"Прочитанные данные файла (размер: {len(file_data)} байт)")
 
-def decrypt_file(encrypted_data, key):
-    print("decrypt_file called")
-    try:
-        fernet = Fernet(key.encode())
-        decrypted_data = fernet.decrypt(encrypted_data)
-        print("File decrypted successfully")
-        return decrypted_data
-    except Exception as e:
-        print("Error during file decryption:", e)
-        return None
+                # Генерация ключа шифрования
+                encryption_key = Fernet.generate_key().decode()
+                print(f"Сгенерированный ключ шифрования: {encryption_key}")
+
+                # Шифрование файла
+                fernet = Fernet(encryption_key.encode())
+                encrypted_file_data = fernet.encrypt(file_data)
+                print(f"Зашифрованные данные файла (размер: {len(encrypted_file_data)} байт)")
+
+                # Создание файла в памяти с зашифрованными данными
+                encrypted_file_content = ContentFile(encrypted_file_data, name=uploaded_file.name)
+
+                # Определение MIME-типа
+                if not mime_type:
+                    mime_type = 'application/octet-stream'
+
+                print(f"Определённый MIME-тип: {mime_type}")
+
+                # Создание записи в базе данных
+                file_record = File.objects.create(
+                    unique_key=unique_key,
+                    file=encrypted_file_content,
+                    encryption_key=encryption_key,  # Сохраняем ключ шифрования
+                    type=file_type,
+                    text=text,
+                    mime_type=mime_type  # Сохраняем MIME-тип
+                )
+
+                # Создание полного URL для файла
+                file_url = request.build_absolute_uri(reverse('file_view', args=[unique_key]))
+
+                # Формирование ответа
+                response_data = {
+                    'file_url': file_url,
+                    'unique_key': unique_key,
+                }
+                print(f"Файл успешно загружен. URL: {file_url}")
+                return JsonResponse(response_data, status=200)
+
+            except Exception as e:
+                print(f"Ошибка при обработке файла: {str(e)}")
+                return JsonResponse({'error': str(e)}, status=500)
+        
+        return JsonResponse({'error': 'Missing required fields'}, status=400)
+    
+    return JsonResponse({'error': 'Invalid method'}, status=405)
 
 
-def download_file(request, key):
-    print("download_file called with key:", key)
+@csrf_exempt
+def handle_file_upload(request):
+    if request.method == 'POST':
+        uploaded_file = request.FILES.get('file')
+        unique_key = str(uuid.uuid4())  # Генерация уникального ключа
+        text = request.POST.get('text', '')
+        mime_type = request.POST.get('mime_type', 'application/octet-stream')
+
+        if uploaded_file:
+            try:
+                # Чтение содержимого файла
+                file_data = uploaded_file.read()
+                print(f"Прочитанные данные файла (размер: {len(file_data)} байт)")
+
+                # Генерация ключа шифрования
+                encryption_key = Fernet.generate_key().decode()
+                print(f"Сгенерированный ключ шифрования: {encryption_key}")
+
+                # Шифрование файла
+                fernet = Fernet(encryption_key.encode())
+                encrypted_file_data = fernet.encrypt(file_data)
+
+                # Создание файла в памяти с зашифрованными данными
+                encrypted_file_content = ContentFile(encrypted_file_data, name=uploaded_file.name)
+
+                # Определение типа файла (изображение, видео или обычный файл)
+                mime_type, _ = mimetypes.guess_type(uploaded_file.name)
+                if mime_type and mime_type.startswith('image'):
+                    file_type = 'image'
+                elif mime_type and mime_type.startswith('video'):
+                    file_type = 'video'
+                else:
+                    file_type = 'file'
+
+                # Создание записи в базе данных
+                File.objects.create(
+                    unique_key=unique_key,
+                    file=encrypted_file_content,
+                    encryption_key=encryption_key,
+                    type=file_type,
+                    text=text,
+                    mime_type=mime_type
+                )
+
+                print(f"Файл успешно загружен с уникальным ключом: {unique_key}")
+
+                # Формируем ссылку на файл (или замените на нужный URL)
+                link = request.build_absolute_uri(reverse('file_view', args=[unique_key]))
+
+                # Редирект на страницу успеха с параметрами
+                return HttpResponseRedirect(reverse('upload_success') + f"?unique_key={unique_key}&link={link}")
+
+            except Exception as e:
+                print(f"Ошибка при обработке файла: {str(e)}")
+                return JsonResponse({'error': str(e)}, status=500)
+        
+        return JsonResponse({'error': 'Missing required fields'}, status=400)
+
+    return JsonResponse({'error': 'Invalid method'}, status=405)
+
+
+
+def home(request):
+    error_message = None
+    error_file_message = None
+    upload_form = UploadFileForm()
+    search_form = UniqueKeyForm()
+
+    if request.method == 'POST':
+        if 'unique_key' in request.POST:  # Обработка поиска файла по ключу
+            search_form = UniqueKeyForm(request.POST)
+            if search_form.is_valid():
+                unique_key = search_form.cleaned_data['unique_key']
+                try:
+                    file_record = File.objects.get(unique_key=unique_key)
+                    return redirect('file_view', key=unique_key)
+                except File.DoesNotExist:
+                    error_message = "Файл с таким ключом не найден."
+            else:
+                error_message = "Некорректный ключ."
+        elif 'file' in request.FILES:  # Обработка загрузки файла
+            # Перенаправление на новую функцию для загрузки файла
+            return handle_file_upload(request)
+
+    context = {
+        'form': search_form,
+        'file_form': upload_form,
+        'error_message': error_message,
+        'error_file_message': error_file_message,
+    }
+
+    return render(request, 'home.html', context)
+# Представление для отображения и скачивания файла
+def file_view(request, key):
     try:
         file_record = File.objects.get(unique_key=key)
-        print("File record found:", file_record)
     except File.DoesNotExist:
-        print("File with key does not exist")
         return HttpResponse("Такого файла не найдено", status=404)
 
     with file_record.file.open('rb') as f:
         encrypted_data = f.read()
 
+    # Расшифровка данных
     decrypted_data = decrypt_file(encrypted_data, file_record.encryption_key)
-
+    
     if decrypted_data is None:
-        print("Decryption failed")
         return HttpResponse("Не удалось расшифровать файл. Проверьте ключ шифрования.", status=400)
 
-    print("Decryption successful, processing file type:", file_record.type)
-    if file_record.type in ['image', 'image_text']:
+    mime_type, _ = mimetypes.guess_type(file_record.file.name)
+
+    # Получение информации о файле
+    file_size = len(decrypted_data)  # Размер файла в байтах
+    upload_date = file_record.created_at.strftime('%Y-%m-%d %H:%M:%S')  # Дата загрузки
+
+    # Подготовка контекста для передачи в шаблон
+    context = {
+        'file': file_record,
+        'file_size': file_size,
+        'upload_date': upload_date,
+        'mime_type': mime_type,
+    }
+
+    if file_record.type == 'image':
         image_base64 = base64.b64encode(decrypted_data).decode('utf-8')
-        delete_file(file_record)
-        return render(request, 'file_detail.html', {
-            'file': file_record,
-            'image_data': image_base64,
-            'is_image': True,
-        })
+        context['image_data'] = image_base64
+        context['is_image'] = True
+        return render(request, 'file_detail.html', context)
+    
     elif file_record.type == 'video':
         video_base64 = base64.b64encode(decrypted_data).decode('utf-8')
-        delete_file(file_record)
+        context['video_data'] = video_base64
+        context['is_video'] = True
+        return render(request, 'file_detail.html', context)
+
+    elif file_record.type == 'file':
+        # Здесь мы возвращаем информацию о файле, если это обычный файл
         return render(request, 'file_detail.html', {
             'file': file_record,
-            'video_data': video_base64,
-            'is_video': True,
-        })
-    else:
-        file_content = ContentFile(decrypted_data)
-        delete_file(file_record)
-        return render(request, 'file_detail.html', {
-            'file': file_record,
-            'file_content': file_content,
-            'is_image': False,
+            'file_size': file_size,
+            'upload_date': upload_date,
+            'mime_type': mime_type,
+            'is_file': True,
         })
 
+    # Если не подходит под предыдущие условия, просто возвращаем файл как загрузку
+    response = HttpResponse(decrypted_data, content_type='application/octet-stream')
+    response['Content-Disposition'] = f'attachment; filename="{file_record.file.name}"'
+    return response
 
-def file_view(request):
-    print("file_view called")
-    error_message = None
-    error_file_message = None
-    image_data = None
-    video_data = None
-    file_url = None
-    upload_file = None  # Инициализация переменной
+# Представление для успешной загрузки
+def upload_success_view(request):
+    unique_key = request.GET.get('unique_key')
+    link = request.GET.get('link')
+    if not unique_key or not link:
+        return HttpResponseRedirect(reverse('home'))
+    return render(request, 'upload_success.html', {'unique_key': unique_key, 'link': link})
 
+# Представление для удаления файла после закрытия страницы
+@csrf_exempt
+def delete_file_view(request):
     if request.method == 'POST':
-        print("Received POST request")
-        form = UniqueKeyForm(request.POST)
-        file_form = UploadFileForm(request.POST, request.FILES)
+        data = json.loads(request.body)
+        key = data.get('key')
+        try:
+            file_record = File.objects.get(unique_key=key)
+            delete_file(file_record)
+            return JsonResponse({'status': 'success'})
+        except File.DoesNotExist:
+            return JsonResponse({'status': 'file_not_found'}, status=404)
+    return JsonResponse({'status': 'invalid_method'}, status=405)
 
-        # Проверяем, какая форма отправлена
-        if 'file' in request.FILES:
-            print('Поймал файл!')
-            if file_form.is_valid():
-                # Получаем загруженный файл
-                uploaded_file = request.FILES['file']
-                print(f"File successfully 'uploaded': {uploaded_file}")
-                # Возвращаем сообщение об успешной загрузке
-                error_file_message = f"Файл '{uploaded_file.name}' был успешно загружен."
-            else:
-                # Выводим ошибки валидации формы
-                print('Ошибки валидации формы:', file_form.errors)
-                error_file_message = "Произошла ошибка при загрузке файла."
+def decrypt_file(encrypted_data, key):
+    try:
+        fernet = Fernet(key.encode())  # Создание объекта Fernet с ключом
+        decrypted_data = fernet.decrypt(encrypted_data)  # Дешифрование данных
+        return decrypted_data
+    except Exception as e:
+        print("Error during file decryption:", e)  # Логирование ошибок
+        return None
 
-        if form.is_valid():
-            unique_key = form.cleaned_data['unique_key']
-            print("Form is valid, unique_key:", unique_key)
-            try:
-                file_record = File.objects.get(unique_key=unique_key)
-                print("File record found:", file_record)
+def download_file(request, key):
+    # Получение записи файла по уникальному ключу
+    file_record = get_object_or_404(File, unique_key=key)
+    print(f"Получена запись файла: {file_record}")
 
-                with file_record.file.open('rb') as f:
-                    encrypted_data = f.read()
+    with file_record.file.open('rb') as f:
+        encrypted_data = f.read()  # Чтение зашифрованных данных
+        print(f"Прочитаны зашифрованные данные, размер: {len(encrypted_data)} байт")
 
-                decrypted_data = decrypt_file(encrypted_data, file_record.encryption_key)
+    # Расшифровка данных
+    decrypted_data = decrypt_file(encrypted_data, file_record.encryption_key)
+    if decrypted_data is None:
+        print("Ошибка: Не удалось расшифровать файл.")
+        return HttpResponse("Не удалось расшифровать файл. Проверьте ключ шифрования.", status=400)
+    print("Данные расшифрованы.")
 
-                if decrypted_data is None:
-                    print("Decryption failed")
-                    error_message = "Не удалось расшифровать файл. Проверьте ключ шифрования."
-                else:
-                    print("Decryption successful, processing file type:", file_record.type)
-                    if file_record.type in ['image', 'image_text']:
-                        image_data = base64.b64encode(decrypted_data).decode('utf-8')
-                    elif file_record.type == 'video':
-                        video_data = base64.b64encode(decrypted_data).decode('utf-8')
-                    else:
-                        file_url = file_record.file.url
+    # Определение MIME-типа
+    mime_type = file_record.mime_type or mimetypes.guess_type(file_record.file.name)[0]
+    if not mime_type:
+        mime_type = 'application/octet-stream'
+    print(f"Определённый MIME-тип: {mime_type}")
 
-                    file_path = file_record.file.path
-                    file_record.delete()
-                    
-                    if os.path.exists(file_path):
-                        print("Deleting file from filesystem:", file_path)
-                        os.remove(file_path)
+    # Получаем расширение файла и имя файла
+    original_filename = file_record.file.name
+    file_name, file_extension = os.path.splitext(original_filename)
+    if not file_extension:
+        file_extension = mimetypes.guess_extension(mime_type) or '.bin'
+    print(f"Определённое расширение файла: {file_extension}")
 
-                    return render(request, 'file_detail.html', {
-                        'file': file_record,
-                        'image_data': image_data,
-                        'video_data': video_data,
-                        'file_url': file_url,
-                    })
+    filename = f"{file_record.unique_key}{file_extension}"  # Задаем имя файла с расширением
+    print(f"Имя файла для скачивания: {filename}")
 
-            except File.DoesNotExist:
-                print("File with key does not exist")
-                error_message = "Такого файла не существует."
-            except Exception as e:
-                print("Exception occurred:", e)
-                error_message = "Произошла ошибка."
+    # Формирование ответа с расшифрованными данными
+    response = HttpResponse(decrypted_data, content_type=mime_type)
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    print("Файл готов к отправке.")
+    delete_file(file_record)
+    print(f"Файл {file_record.file.name} был удалён после скачивания.")
 
-    else:
-        form = UniqueKeyForm()
-        upload_file = UploadFileForm()  # Инициализация формы файла
-
-    return render(request, 'file_view.html', {
-        'form': form,
-        'file_form': upload_file,
-        'error_message': error_message,
-        'error_file_message': error_file_message,
-    })
+    return response

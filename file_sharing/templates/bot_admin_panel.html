@@ -113,8 +113,10 @@
                 <div class="row">
                     <div class="col-md-8">
                         <h4>Тикеты</h4>
+
+                        <h5>Открытые тикеты</h5>
                         <div class="list-group">
-                            {% for ticket in tickets %}
+                            {% for ticket in open_tickets %}
                                 <div class="list-group-item">
                                     <h5 class="mb-1">Тикет #{{ ticket.ticket_id }}</h5>
                                     <p class="mb-1">Пользователь: {{ ticket.user.username }}</p>
@@ -122,22 +124,56 @@
                                     <p class="mb-1">Статус: {{ ticket.status }}</p>
                                     <p class="mb-1">Создан: {{ ticket.created_at }}</p>
 
-                                    {% if ticket.status != 'closed' %}
-                                        <form method="post" class="d-inline">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="ticket_id" value="{{ ticket.ticket_id }}">
-                                            <button type="submit" name="action" value="close" class="btn btn-danger">Закрыть тикет</button>
-                                        </form>
-                                        <form method="post" class="d-inline">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="ticket_id" value="{{ ticket.ticket_id }}">
-                                            <input type="text" name="assigned_user" placeholder="ID оператора" required>
-                                            <button type="submit" name="action" value="assign" class="btn btn-success">Назначить оператору</button>
-                                        </form>
-                                    {% endif %}
+                                    <form method="post" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="ticket_id" value="{{ ticket.ticket_id }}">
+                                        <button type="submit" name="action" value="close" class="btn btn-danger">Закрыть тикет</button>
+                                    </form>
+                                    <form method="post" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="ticket_id" value="{{ ticket.ticket_id }}">
+                                        <input type="text" name="assigned_user" placeholder="ID оператора" required>
+                                        <button type="submit" name="action" value="assign" class="btn btn-success">Назначить оператору</button>
+                                    </form>
                                 </div>
                             {% empty %}
-                                <div class="list-group-item">Нет новых тикетов.</div>
+                                <div class="list-group-item">Нет открытых тикетов.</div>
+                            {% endfor %}
+                        </div>
+
+                        <h5 class="mt-4">Тикеты в работе</h5>
+                        <div class="list-group">
+                            {% for ticket in in_progress_tickets %}
+                                <div class="list-group-item">
+                                    <h5 class="mb-1">Тикет #{{ ticket.ticket_id }}</h5>
+                                    <p class="mb-1">Пользователь: {{ ticket.user.username }}</p>
+                                    <p class="mb-1">Вопрос: {{ ticket.question }}</p>
+                                    <p class="mb-1">Статус: {{ ticket.status }}</p>
+                                    <p class="mb-1">Создан: {{ ticket.created_at }}</p>
+                                    <p class="mb-1">Назначен оператору: {{ ticket.assigned_user.username }}</p>
+                                    <form method="post" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="ticket_id" value="{{ ticket.ticket_id }}">
+                                        <button type="submit" name="action" value="close" class="btn btn-danger">Закрыть тикет</button>
+                                    </form>
+                                </div>
+                            {% empty %}
+                                <div class="list-group-item">Нет тикетов в работе.</div>
+                            {% endfor %}
+                        </div>
+
+                        <h5 class="mt-4">Закрытые тикеты</h5>
+                        <div class="list-group">
+                            {% for ticket in closed_tickets %}
+                                <div class="list-group-item">
+                                    <h5 class="mb-1">Тикет #{{ ticket.ticket_id }}</h5>
+                                    <p class="mb-1">Пользователь: {{ ticket.user.username }}</p>
+                                    <p class="mb-1">Вопрос: {{ ticket.question }}</p>
+                                    <p class="mb-1">Статус: {{ ticket.status }}</p>
+                                    <p class="mb-1">Создан: {{ ticket.created_at }}</p>
+                                </div>
+                            {% empty %}
+                                <div class="list-group-item">Нет закрытых тикетов.</div>
                             {% endfor %}
                         </div>
                     </div>
@@ -167,7 +203,7 @@
             </div>
         </div>
 
-        {% endif %}
+    {% endif %}
     </div>
 
     <!-- Скрипт для инициализации графика подписчиков -->

@@ -2,27 +2,16 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from anon_bot_manager.telegram_bot_launcher.utils import generate_unique_key
 import requests
-from cryptography.fernet import Fernet
 from anon_bot_manager.telegram_bot_launcher.config import API_URL
-import logging
 from anon_bot_manager.models import BotUser
+import mimetypes
+import os
 from asgiref.sync import sync_to_async
 
 # Определение состояний
 SELECTING_FILE_TYPE = 'selecting_file_type'
 WAITING_FOR_FILE = 'waiting_for_file'
 WAITING_FOR_IMAGE_TEXT = 'waiting_for_image_text'
-
-# Генерация уникального ключа шифрования
-def generate_encryption_key() -> bytes:
-    return Fernet.generate_key()
-
-# Шифрование данных
-def encrypt_data(data: bytes, encryption_key: bytes) -> bytes:
-    if not data:
-        raise ValueError("Data to encrypt cannot be empty.")
-    cipher_suite = Fernet(encryption_key)
-    return cipher_suite.encrypt(data)
 
 async def generate_link(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     context.user_data['state'] = SELECTING_FILE_TYPE
@@ -38,7 +27,7 @@ async def generate_link(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         "*Обратите внимание, что максимальный размер файла для загрузки в Telegram составляет 20 МБ*.\n\n"
         "Если файл больше, вы можете загрузить его на нашем сайте:",
         reply_markup=reply_markup,
-        parse_mode='Markdown'  # Используем Markdown для форматирования
+        parse_mode='Markdown'
     )
 
 async def update_generated_links(user_id):
@@ -56,31 +45,39 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     # Обработка входящего файла
     if update.message.document:
+        print('Поймал файл')
         await handle_file(update, context)
     elif update.message.photo:
+        print('Поймал фото')
         await handle_image(update, context)
     elif update.message.video:
         await handle_video(update, context)
+        print('Поймал видео')
     else:
         await update.message.reply_text("Пожалуйста, отправьте файл, изображение или видео.")
 
 async def handle_file(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    file = await update.message.document.get_file()
-    file_size = update.message.document.file_size
-
+    document = update.message.document
+    file = await document.get_file()
+    file_size = document.file_size
+    keyboard = [
+        [InlineKeyboardButton("anonloader.io", url="https://anonloader.io")],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
     if file_size > 20 * 1024 * 1024:  # 20 MB
-        await update.message.reply_text("Файл превышает ограничение Telegram в 20 МБ. Вы можете загрузить его на нашем сайте.")
+        await update.message.reply_text("Файл превышает ограничение Telegram в 20 МБ. Вы можете загрузить его на нашем сайте.", reply_markup=reply_markup)
         return
 
-    file_data = await file.download_as_bytearray()
-    file_data = bytes(file_data)
-    encryption_key = generate_encryption_key()
-    encrypted_data = encrypt_data(file_data, encryption_key)
+    file_path = file.file_path
+    file_name = os.path.basename(file_path)
+    mime_type, _ = mimetypes.guess_type(file_name)
+    print(f"MIME-тип: {mime_type}")
 
+    file_data = await file.download_as_bytearray()
     context.user_data['uploaded_content'] = {
         'type': 'file',
-        'content': encrypted_data,
-        'encryption_key': encryption_key.decode()
+        'content': file_data,
+        'mime_type' : mime_type,
     }
 
     await ask_for_link_lifetime(update)
@@ -90,19 +87,24 @@ async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     file = await photo.get_file()
     file_size = photo.file_size
 
+    keyboard = [
+        [InlineKeyboardButton("anonloader.io", url="https://anonloader.io")],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
     if file_size > 20 * 1024 * 1024:  # 20 MB
-        await update.message.reply_text("Изображение превышает ограничение Telegram в 20 МБ. Вы можете загрузить его на нашем сайте.")
+        await update.message.reply_text("Файл превышает ограничение Telegram в 20 МБ. Вы можете загрузить его на нашем сайте.", reply_markup=reply_markup)
         return
 
-    file_data = await file.download_as_bytearray()
-    file_data = bytes(file_data)
-    encryption_key = generate_encryption_key()
-    encrypted_data = encrypt_data(file_data, encryption_key)
+    file_path = file.file_path
+    file_name = os.path.basename(file_path)
+    mime_type, _ = mimetypes.guess_type(file_name)
+    print(f"MIME-тип: {mime_type}")
 
+    file_data = await file.download_as_bytearray()
     context.user_data['uploaded_content'] = {
         'type': 'image',
-        'content': encrypted_data,
-        'encryption_key': encryption_key.decode()
+        'content': file_data,
+        'mime_type' : mime_type,
     }
 
     await ask_for_link_lifetime(update)
@@ -111,24 +113,28 @@ async def handle_video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     video = update.message.video
     file_size = video.file_size
 
+    keyboard = [
+        [InlineKeyboardButton("anonloader.io", url="https://anonloader.io")],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
     if file_size > 20 * 1024 * 1024:  # 20 MB
-        await update.message.reply_text("Видео превышает ограничение Telegram в 20 МБ. Вы можете загрузить его на нашем сайте.")
+        await update.message.reply_text("Файл превышает ограничение Telegram в 20 МБ. Вы можете загрузить его на нашем сайте.", reply_markup=reply_markup)
         return
 
     file = await video.get_file()
+    file_path = file.file_path
+    file_name = os.path.basename(file_path)
+    mime_type, _ = mimetypes.guess_type(file_name)
+    print(f"MIME-тип: {mime_type}")
+
     file_data = await file.download_as_bytearray()
-    file_data = bytes(file_data)
-
-    encryption_key = generate_encryption_key()
-    encrypted_data = encrypt_data(file_data, encryption_key)
-
     context.user_data['uploaded_content'] = {
         'type': 'video',
-        'content': encrypted_data,
-        'encryption_key': encryption_key.decode()
+        'content': file_data,
+        'mime_type' : mime_type,
     }
-
     await ask_for_link_lifetime(update)
+
 
 async def ask_for_link_lifetime(update: Update) -> None:
     keyboard = [
@@ -155,15 +161,24 @@ async def link_lifetime_selected(update: Update, context: ContextTypes.DEFAULT_T
         return
 
     unique_key = generate_unique_key()
-    files = {'file': uploaded_content['content']}
+
+    # Получаем имя файла и MIME-тип
+    original_filename = uploaded_content.get('filename', 'uploaded_file')
+    mime_type = uploaded_content['mime_type']
+    # Для отладки выводим имя файла и MIME-тип
+    print(f"Имя файла: {original_filename}, MIME-тип: {mime_type}")
+
+    files = {
+        'file': (original_filename, uploaded_content['content'])  # Используем оригинальное имя и MIME-тип
+    }
     data = {
         'key': unique_key,
         'type': uploaded_content['type'],
         'text': context.user_data.get('text', ''),
         'lifetime': lifetime,
-        'encryption_key': uploaded_content['encryption_key']
+        'mime_type': mime_type,
     }
-
+    
     loading_message = await query.message.edit_text("Загрузка файла на сервер...")
 
     try:
@@ -191,6 +206,5 @@ async def link_lifetime_selected(update: Update, context: ContextTypes.DEFAULT_T
             context.user_data['state'] = None
         else:
             await loading_message.edit_text("Произошла ошибка при загрузке файла.")
-    except requests.RequestException as e:
+    except requests.RequestException:
         await loading_message.edit_text("Ошибка при подключении к серверу. Пожалуйста, попробуйте снова.")
-        logging.error(f"Ошибка при запросе: {e}")

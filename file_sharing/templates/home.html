@@ -59,37 +59,30 @@
 
             function animateTitleToRandom(index = 0) {
                 if (index < originalTitle.length) {
-                    // Меняем одну букву заголовка на случайный символ и оставляем остальные символы
                     document.title = document.title.substring(0, index) + generateRandomCharacter() + originalTitle.substring(index + 1);
                     setTimeout(() => animateTitleToRandom(index + 1), changeInterval);
                 } else {
-                    // Начинаем восстанавливать заголовок в обратном направлении
                     animateTitleToOriginal(originalTitle.length - 1);
                 }
             }
 
             function animateTitleToOriginal(index) {
                 if (index >= 0) {
-                    // Восстанавливаем одну букву заголовка с конца
                     document.title = document.title.substring(0, index) + originalTitle.charAt(index) + document.title.substring(index + 1);
                     setTimeout(() => animateTitleToOriginal(index - 1), changeInterval);
                 } else {
-                    // Ожидание перед следующим циклом с дополнительной задержкой
                     setTimeout(startCycle, transitionDuration + endDelay);
                 }
             }
 
             function startCycle() {
-                // Сначала держим оригинальный заголовок в течение 2 секунд
                 setTimeout(() => {
-                    // Затем запускаем анимацию изменения заголовка
                     animateTitleToRandom();
                 }, transitionDuration);
             }
 
-            // Запуск первого цикла
             startCycle();
         });
-
+    </script>
 </body>
 </html>

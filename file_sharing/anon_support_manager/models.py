@@ -27,21 +27,28 @@ class Ticket(models.Model):
     status = models.CharField(max_length=50, choices=[('new', 'New'), ('in_progress', 'In Progress'), ('closed', 'Closed')], default='new')
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
-    message_history = models.JSONField(default=list)  # Поле для хранения истории сообщений
+
+    def add_message(self, sender, text):
+        """Метод для добавления сообщения в историю сообщений."""
+        message = Message.objects.create(ticket=self, user=sender, content=text)  # Исправлены аргументы
+        return message  # Возвращаем созданное сообщение
+
+    def get_messages(self):
+        """Метод для получения истории сообщений в удобном формате."""
+        return self.messages.all()  # Возвращает все сообщения, связанные с тикетом
+
+    def get_last_message(self):
+        """Метод для получения последнего сообщения тикета."""
+        return self.messages.last()  # Возвращает последнее сообщение тикета
 
     def __str__(self):
         return f'Ticket #{self.ticket_id} - User: {self.user.username if self.user else "Unknown"}'
 
-    def add_message(self, sender, text):
-        """Метод для добавления сообщения в историю сообщений."""
-        message = {
-            "sender": sender.username,  # Имя отправителя
-            "text": text,  # Текст сообщения
-            "sent_at": timezone.now().isoformat()  # Время отправки в ISO формате
-        }
-        self.message_history.append(message)
-        self.save()
+class Message(models.Model):
+    ticket = models.ForeignKey('Ticket', on_delete=models.CASCADE, related_name='messages')  # Связь с тикетом
+    user = models.ForeignKey('User', on_delete=models.CASCADE)  # Связь с пользователем
+    content = models.TextField()  # Содержимое сообщения
+    timestamp = models.DateTimeField(default=timezone.now)  # Время отправки сообщения
 
-    def get_messages(self):
-        """Метод для получения истории сообщений в удобном формате."""
-        return self.message_history
+    def __str__(self):
+        return f"Message from {self.user.username} on Ticket #{self.ticket.ticket_id}"

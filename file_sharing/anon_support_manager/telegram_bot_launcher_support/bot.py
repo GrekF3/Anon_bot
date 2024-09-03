@@ -3,7 +3,7 @@ import django
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler, ContextTypes
 from django.conf import settings
-from anon_support_manager.models import User, Ticket, Operator
+from anon_support_manager.models import User, Ticket, Operator, Message  # Импортируем модель Message
 from django.utils import timezone
 from asgiref.sync import sync_to_async
 
@@ -84,6 +84,11 @@ async def send_available_tickets(update: Update, context: ContextTypes.DEFAULT_T
     """Отправляет доступные тикеты активным операторам."""
     available_tickets = await sync_to_async(list)(Ticket.objects.filter(status='new', assigned_user__isnull=True))
     active_operators = await sync_to_async(list)(Operator.objects.filter(is_active=True))
+
+    # Проверяем, есть ли доступные тикеты
+    if not available_tickets:
+        await update.message.reply_text("Доступных тикетов сейчас нет.")
+        return
 
     for operator in active_operators:
         user = await sync_to_async(lambda: operator.user)()
