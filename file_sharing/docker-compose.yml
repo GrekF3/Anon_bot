@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgres://skyhelper:NezoX228008!@db:5432/anonloader
+      - API_URL=http://web:8000  # Имя службы для обращения из других контейнеров
+    depends_on:
+      - db
+
+  db:
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: anonloader
+      POSTGRES_USER: skyhelper
+      POSTGRES_PASSWORD: NezoX228008!
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  anon_bot:
+    build: .
+    command: python manage.py anon
+    depends_on:
+      - db
+      - web  # Убедитесь, что бот запускается после веб-сервиса
+    volumes:
+      - .:/app
+    environment:
+      - API_URL=http://web:8000  # Имя службы для обращения к Django
+
+  support_bot:
+    build: .
+    command: python manage.py support
+    depends_on:
+      - db
+      - web  # Убедитесь, что бот запускается после веб-сервиса
+    volumes:
+      - .:/app
+    environment:
+      - API_URL=http://web:8000  # Имя службы для обращения к Django
+
+volumes:
+  postgres_data:

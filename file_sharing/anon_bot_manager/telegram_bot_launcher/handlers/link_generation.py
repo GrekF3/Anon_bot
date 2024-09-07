@@ -256,7 +256,7 @@ async def link_lifetime_selected(update: Update, context: ContextTypes.DEFAULT_T
 
             await loading_message.edit_text(
                 f"Ваш файл был успешно загружен на сервер.\n"
-                f"Ссылка на ваш файл: {file_url}\n"
+                f"Ссылка на ваш файл: {settings.BASE_URL}/file/{unique_key}\n"
                 f"Ключ доступа к файлу: <code>{unique_key}</code>\n"
                 f"Срок жизни файла: {lifetime_display}\n"
                 f"Количество доступных открытий ссылки: {download_count}",

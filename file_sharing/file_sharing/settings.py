@@ -29,7 +29,9 @@ SECRET_KEY = 'django-insecure-z(2jwribyh(i$x$4cllkfg+-pv2^%k*&9i0p4b6+e-c-+s_5ul
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
-API_URL = 'http://192.168.0.105/'
+
+API_URL = os.getenv('API_URL', 'http://web:8000')  # Используйте имя сервиса 'web'
+BASE_URL = os.getenv('BASE_URL', 'http://127.0.0.1:8000')  # Измените на ваш внешний адрес в продакшене
 ANON_SUPPORT_TOKEN = '6793726422:AAGaEZ588yVlgKa7OlcNjDwu2RV5t2Z9yQg'
 ANON_TOKEN = '7375576690:AAFP_UV4WWREIDdPINtfEQFYEiks088J2Pw'
 
@@ -88,7 +90,7 @@ DATABASES = {
         'NAME': 'anonloader',
         'USER': 'skyhelper',
         'PASSWORD': 'NezoX228008!',
-        'HOST': 'localhost',
+        'HOST': 'db',
         'PORT': '5432',
     }
 }
