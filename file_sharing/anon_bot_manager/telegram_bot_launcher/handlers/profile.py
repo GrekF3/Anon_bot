@@ -10,22 +10,16 @@ async def profile(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         # Получаем профиль пользователя из базы данных
         user_profile = await sync_to_async(BotUser.objects.get)(user_id=user_id)
 
-        # Устанавливаем статус подписки и блокировки
-        subscription_status = "✅ Активна" if user_profile.subscription_type != 'FREE' else "❌ Неактивна"
-        blocked_status = "🚫 Заблокирован" if user_profile.is_blocked else "✅ Активен"
-
         # Формируем текст ответа с использованием Markdown для форматирования
         response_text = (
             "*Профиль пользователя:*\n\n"
-            f"👤 *Никнейм:* @{user_profile.username}\n"
-            f"🪙 *Подписка:* {subscription_status}\n"
-            f"🔒 *Доступ к сервису:* {blocked_status}\n"
+            f"👤 *Никнейм:* @{user_profile.username}\n\n"
+
             f"📊 *Сгенерировано ссылок:* {user_profile.generated_links}\n"
         )
 
         # Создаем кнопки для управления подпиской и возвращения в меню
         keyboard = [
-            [KeyboardButton("Управление подпиской")],
             [KeyboardButton("Вернуться в меню")]
         ]
         reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)

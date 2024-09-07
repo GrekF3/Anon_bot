@@ -19,7 +19,6 @@
         <nav class="nav nav-pills flex-column flex-sm-row mb-4">
             <a class="flex-sm-fill text-sm-center nav-link {% if section == 'broadcast' %}active{% endif %}" href="{% url 'broadcast' %}"><i class="fas fa-paper-plane"></i> Сделать рассылку</a>
             <a class="flex-sm-fill text-sm-center nav-link {% if section == 'manage_users' %}active{% endif %}" href="{% url 'manage_users' %}"><i class="fas fa-users"></i> Управление пользователями</a>
-            <a class="flex-sm-fill text-sm-center nav-link {% if section == 'statistics' %}active{% endif %}" href="{% url 'statistics' %}"><i class="fas fa-chart-line"></i> Статистика</a>
             <a class="flex-sm-fill text-sm-center nav-link {% if section == 'support_panel' %}active{% endif %}" href="{% url 'support_panel' %}"><i class="fas fa-headset"></i> Панель поддержки</a>
         </nav>
 
@@ -56,50 +55,17 @@
                 <h2>👤 Управление пользователями</h2>
             </div>
             <div class="card-body">
+                <p>Общее количество пользователей: <strong>{{ total_users }}</strong></p>
                 <input class="form-control mb-3" id="searchUserInput" type="text" placeholder="Поиск пользователя">
-                <ul class="list-group" id="userList">  
+                <ul class="list-group" id="userList">
                     {% for user in users %}
                     <li class="list-group-item d-flex justify-content-between align-items-center">
                         <div>
                             <strong>{{ user.username }}</strong> (ID: {{ user.user_id }})
                         </div>
-                        <div>
-                            <!-- Подписка -->
-                            <form method="post" style="display:inline;">
-                                {% csrf_token %}
-                                <input type="hidden" name="user_id" value="{{ user.user_id }}">
-                                {% if user.subscription_type == 'FREE' %}
-                                    <button class="btn btn-sm btn-outline-primary" name="action" value="add_subscription">Добавить подписку</button>
-                                {% else %}
-                                    <button class="btn btn-sm btn-outline-danger" name="action" value="remove">Удалить подписку</button>
-                                {% endif %}
-                            </form>
-
-                            <!-- Состояние аккаунта -->
-                            <form method="post" style="display:inline;">
-                                {% csrf_token %}
-                                <input type="hidden" name="user_id" value="{{ user.user_id }}">
-                                {% if user.is_blocked %}
-                                    <button class="btn btn-sm btn-outline-success" name="action" value="unblock">Разблокировать</button>
-                                {% else %}
-                                    <button class="btn btn-sm btn-outline-warning" name="action" value="block">Заблокировать</button>
-                                {% endif %}
-                            </form>
-                        </div>
                     </li>
                     {% endfor %}
                 </ul>
-            </div>
-        </div>
-
-        {% elif section == 'statistics' %}
-        <!-- Раздел для статистики -->
-        <div class="card mb-3">
-            <div class="card-header">
-                <h2>📊 Статистика</h2>
-            </div>
-            <div class="card-body">
-                <canvas id="subscribersChart"></canvas>
             </div>
         </div>
 
@@ -206,58 +172,6 @@
     {% endif %}
     </div>
 
-    <!-- Скрипт для инициализации графика подписчиков -->
-    {% if section == 'statistics' %}
-    <script>
-        const ctx = document.getElementById('subscribersChart').getContext('2d');
-        const subscribersChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: {{ statistics.labels | safe }},
-                datasets: [
-                    {
-                        label: 'Новые пользователи',
-                        data: {{ statistics.new_subscribers_data | safe }},
-                        backgroundColor: 'rgba(75, 192, 192, 0.5)',
-                        borderColor: 'rgba(75, 192, 192, 1)',
-                        borderWidth: 1,
-                    },
-                    {
-                        label: 'Премиум пользователи',
-                        data: {{ statistics.premium_users_data | safe }},
-                        backgroundColor: 'rgba(255, 205, 86, 0.5)',
-                        borderColor: 'rgba(255, 205, 86, 1)',
-                        borderWidth: 1,
-                    },
-                    {
-                        label: 'Сгенерированные ссылки',
-                        data: {{ statistics.link_data | safe }},
-                        borderColor: 'rgba(255, 99, 132, 1)',
-                        borderWidth: 2,
-                        fill: false,
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                    },
-                    title: {
-                        display: true,
-                        text: 'Статистика новых пользователей, премиум пользователей и сгенерированных ссылок за последние 30 дней'
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-    </script>
-    {% endif %}
     <script src="{% static 'js/admin.js' %}"></script>
 </body>
 </html>

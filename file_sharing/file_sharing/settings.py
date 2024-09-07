@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 import os
+from celery.schedules import crontab
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -27,9 +29,11 @@ SECRET_KEY = 'django-insecure-z(2jwribyh(i$x$4cllkfg+-pv2^%k*&9i0p4b6+e-c-+s_5ul
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
-
+API_URL = 'http://192.168.0.105/'
 ANON_SUPPORT_TOKEN = '6793726422:AAGaEZ588yVlgKa7OlcNjDwu2RV5t2Z9yQg'
 ANON_TOKEN = '7375576690:AAFP_UV4WWREIDdPINtfEQFYEiks088J2Pw'
+
+
 
 # Application definition
 
@@ -109,6 +113,15 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
+# Настройки Celery
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+
+
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
@@ -126,7 +139,7 @@ USE_TZ = True
 import os
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'

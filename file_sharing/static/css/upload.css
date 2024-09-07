@@ -1,7 +1,7 @@
 body {
     background-color: #1e1e1e;
     color: #f5f5f5;
-    font-family: 'Arial', sans-serif;
+    font-family: "Chocolate Classical Sans", sans-serif;
     margin: 0;
     padding: 0;
     display: flex;
@@ -16,11 +16,10 @@ body {
     border-radius: 10px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
     max-width: 500px;
-    text-align: center;
 }
 
 h1 {
-    color: #76c7c0;
+    color: #3ca31b;
     margin-bottom: 20px;
 }
 
@@ -30,11 +29,11 @@ p {
 }
 
 strong {
-    color: #f39c12;
+    color: #c296ff;
 }
 
 a {
-    color: #3498db;
+    color: #2744b5;
     text-decoration: none;
 }
 

@@ -6,6 +6,5 @@ urlpatterns = [
     path('file/<str:key>/', views.file_view, name='file_view'),
     path('upload/', views.upload_file, name='upload'),
     path('upload/success/', views.upload_success_view, name='upload_success'),
-    path('delete_file/', views.delete_file_view, name='delete_file_view'),
     path('download/<str:key>/', views.download_file, name='file_download'),
 ]

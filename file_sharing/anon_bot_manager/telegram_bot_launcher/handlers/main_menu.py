@@ -5,7 +5,7 @@ from telegram.ext import ContextTypes
 from anon_bot_manager.telegram_bot_launcher.handlers.privacy_policy import privacy_policy
 from anon_bot_manager.telegram_bot_launcher.handlers.link_generation import generate_link
 from anon_bot_manager.telegram_bot_launcher.handlers.profile import profile
-from anon_bot_manager.telegram_bot_launcher.handlers.subscription import subscription
+from anon_bot_manager.telegram_bot_launcher.handlers.support import support_bot
 from anon_bot_manager.models import BotUser
 from asgiref.sync import sync_to_async
 
@@ -44,7 +44,7 @@ async def show_main_menu(update: Update) -> None:
     # Формируем основное меню
     keyboard = [
         [KeyboardButton("🔗 Сгенерировать ссылку 🔗")],
-        [KeyboardButton("👤 Профиль"), KeyboardButton("Подписка 💰")],
+        [KeyboardButton("👤 Профиль"), KeyboardButton("Поддержка 🆘")],
         [KeyboardButton("📕 Политика конфиденциальности 📕")]
     ]
 
@@ -61,21 +61,14 @@ async def handle_user_input(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         await update.message.reply_text("Профиль пользователя не найден.")
         return
 
-    # Проверка, заблокирован ли пользователь
-    if user_profile.is_blocked:
-        await update.message.reply_text(
-            "Вы были заблокированы на сервисе.\nДля разблокировки свяжитесь с @GrekF3"
-        )
-        return  # Выходим из функции, чтобы не продолжать обработку
-
     # Основное меню
     selected_option = update.message.text
     if selected_option == "🔗 Сгенерировать ссылку 🔗":
         await generate_link(update, context)
     elif selected_option == "👤 Профиль":
         await profile(update, context)
-    elif selected_option in ["Подписка 💰", "Управление подпиской"]:
-        await subscription(update, context)
+    elif selected_option in ["Поддержка 🆘"]:
+        await support_bot(update, context)
     elif selected_option == "📕 Политика конфиденциальности 📕":
         await privacy_policy(update, context)
     elif selected_option == "⚙ Администраторское меню ⚙" and user_profile.is_admin:

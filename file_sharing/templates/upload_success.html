@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Chocolate+Classical+Sans&family=Cuprum:ital,wght@0,400..700;1,400..700&family=M+PLUS+1p:wght@100;300;400;500;700;800;900&display=swap" rel="stylesheet">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{% static 'css/upload.css' %}">
     <link rel="apple-touch-icon" sizes="180x180" href="{% static "favicon/apple-touch-icon.png" %}">
@@ -24,6 +25,11 @@
         <p>Уникальный ключ: <strong>{{ unique_key }}</strong></p>
         <p>Ссылка на Ваш файл: <strong><a href="{{ link }}">{{ link }}</a></strong></p>
         <p>Сохраните этот ключ, он понадобятся для доступа к файлу.</p>
+        {% if file_expiration == 'one_time' %}
+            <p>Срок жизни файла: <strong>Одноразовая ссылка</strong></p>
+        {% else %}
+            <p>Срок жизни файла: <strong>{{ file_expiration }}</strong></p>
+        {% endif %}
     </div>
 </body>
 <script>

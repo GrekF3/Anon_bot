@@ -1,38 +1,72 @@
+:root {
+    --background-color: #121212; /* Основной фон */
+    --container-background: #1e1e1e; /* Фон контейнера */
+    --text-color: #ffffff; /* Цвет текста */
+    --header-color: #a33131; /* Цвет заголовка */
+    --subheader-color: #c296ff; /* Цвет подзаголовка */
+    --paragraph-color: #e0e0e0; /* Цвет параграфа */
+    --button-background: #4707a1; /* Фон кнопки */
+    --button-hover: #4f09b1; /* Цвет кнопки при наведении */
+    --alert-success: #4caf50; /* Цвет успешных сообщений */
+    --alert-danger: #f44336; /* Цвет ошибочных сообщений */
+    --input-background: #282828; /* Фон полей ввода */
+    --border-color: #6200ea; /* Цвет границ */
+    --notice-border-color: #6200ea; /* Цвет границы для уведомлений */
+}
+
 /* Основные стили */
 body {
-    background-color: #121212;
-    color: #ffffff;
-    font-family: 'Arial', sans-serif;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    font-family: "Chocolate Classical Sans", sans-serif;
     margin: 0;
     padding: 0;
 }
 
+.wrapper {
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+    margin: 0 auto; /* Центрирование контейнера */
+}
 /* Контейнер для форм */
 .container {
-    max-width: 600px;
-    margin: 20px auto; /* Отступ сверху и снизу */
+    max-width: 800px;
     padding: 20px;
-    background-color: #1e1e1e;
+    background-color: var(--container-background);
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-    overflow: hidden; /* Убедитесь, что содержимое не выходит за рамки */
 }
 
-/* Заголовки внутри контейнера */
 .container h1 {
+    font-size: 26px; /* Увеличен размер шрифта */
+    margin-bottom: 15px;
+    color: var(--subheader-color); /* Цвет заголовка */
+}
+
+.container h2 {
     font-size: 24px;
-    margin-bottom: 20px; /* Отступ снизу */
+    margin-top: 10px;
+    color: var(--header-color);
+}
+
+/* Параграфы */
+.container p {
+    font-size: 16px; /* Увеличен размер шрифта */
+    line-height: 1.5; /* Увеличен межстрочный интервал */
+    margin: 10px 0; /* Отступы сверху и снизу */
+    color: var(--paragraph-color); /* Светлый цвет текста */
 }
 
 /* Стили кнопок */
 .btn {
-    background-color: #6200ea;
+    background-color: var(--button-background);
     border: none;
-    color: white;
+    color: var(--text-color);
     padding: 12px 24px; /* Увеличены отступы */
     border-radius: 4px;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    transition: background-color 0.3s ease, transform 0.2s ease;
     display: inline-block;
     margin-top: 20px; /* Увеличенный отступ сверху */
     text-align: center;
@@ -42,7 +76,8 @@ body {
 }
 
 .btn:hover {
-    background-color: #3700b3;
+    background-color: var(--button-hover);
+    transform: scale(1.02); /* Увеличение кнопки при наведении */
 }
 
 /* Стиль для статуса сообщений */
@@ -59,50 +94,219 @@ body {
 
 /* Стили для успешных и ошибочных сообщений */
 .alert-success {
-    background-color: #4caf50;
-    color: white;
+    background-color: var(--alert-success);
+    color: var(--text-color);
 }
 
 .alert-danger {
-    background-color: #f44336;
-    color: white;
+    background-color: var(--alert-danger);
+    color: var(--text-color);
 }
 
-/* Стили для ввода файлов */
-input[type="file"] {
-    background-color: #282828;
-    color: #ffffff;
-    padding: 10px;
-    border: 1px solid #6200ea;
-    border-radius: 4px;
-    margin-top: 10px; /* Отступ сверху */
-    cursor: pointer; /* Курсор при наведении */
-}
-
-/* Стили для ввода текста */
+/* Стили для ввода файлов и текста */
+input[type="file"],
 input[type="text"],
-input[type="password"] {
-    background-color: #282828;
-    color: #ffffff;
+input[type="password"],
+.select-lifetime {
+    background-color: var(--input-background);
+    color: var(--text-color);
     padding: 10px;
-    border: 1px solid #6200ea;
+    border: 1px solid var(--border-color);
     border-radius: 4px;
-    margin-top: 10px; /* Отступ сверху */
+    margin-top: 10px;
+    width: 100%; /* Полная ширина */
+    box-sizing: border-box; /* Включаем padding в общую ширину */
+}
+
+input[type="file"]:focus,
+input[type="text"]:focus,
+input[type="password"]:focus,
+.select-lifetime:focus {
+    border-color: var(--button-hover); /* Цвет границы при фокусе */
+    outline: none; /* Убираем стандартное обрамление */
 }
 
 /* Стили для меток */
 label {
     margin-top: 10px;
-    display: block; /* Блоковое отображение для меток */
+    display: block;
 }
 
 /* Для форм в целом */
 form {
     display: flex;
-    flex-direction: column; /* Вертикальное расположение элементов */
+    flex-direction: column;
 }
 
 /* Устранение наложений между контейнерами */
 .mt-5 {
-    margin-top: 40px; /* Увеличенный отступ для разделения */
+    margin-top: 40px;
 }
+
+/* Стиль для уведомлений */
+.notice {
+    color: #333333; /* Темный текст */
+    padding: 10px;
+    border-radius: 4px;
+    margin-top: 10px;
+    font-size: 14px;
+    line-height: 1.4;
+    border: 2px solid var(--notice-border-color); /* Темная граница для выделения */
+}
+
+/* Стиль для фокуса */
+.btn:focus,
+input:focus,
+.select-lifetime:focus {
+    outline: 2px solid var(--button-hover); /* Четкое обрамление */
+    outline-offset: 2px; /* Отступ для обрамления */
+}
+
+.ad-block {
+    width: 25%; /* Ширина блока рекламы */
+    background-color: var(--container-background);
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    margin-right: 20px; /* Отступ справа */
+}
+
+.contact-block {
+    width: 25%; /* Ширина блока контактов */
+    background-color: var(--container-background);
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    margin-left: 20px; /* Отступ слева */
+}
+
+/* Стили для заголовков блоков рекламы и контактов */
+.ad-block h2, .contact-block h2 {
+    font-size: 24px;
+    margin-bottom: 15px;
+    color: var(--header-color);
+}
+
+.main-container {
+    background-color: var(--background-color);
+    box-shadow: none;
+    max-width: 1200px;
+}
+
+ul.list-unstyled li {
+    margin-bottom: 10px; /* Отступ между элементами списка */
+}
+
+ul.list-unstyled li a {
+    text-decoration: none; /* Убираем подчеркивание ссылок */
+    color: #007bff; /* Цвет ссылок (можно настроить под дизайн) */
+    font-size: 18px; /* Размер текста */
+}
+
+ul.list-unstyled li a:hover {
+    color: #0056b3; /* Цвет ссылки при наведении */
+}
+
+ul.list-unstyled li i {
+    margin-right: 8px; /* Отступ между иконкой и текстом */
+    font-size: 20px; /* Размер иконки */
+}
+
+
+#banner {
+    display: flex;
+    flex-direction: column;
+    gap: 20px; /* Промежуток между баннерами */
+    margin-top: 20px;
+}
+
+@media (min-width: 992px) {
+    #banner {
+        flex-direction: row; /* Горизонтальная ориентация на больших экранах */
+    }
+}
+
+#banner img {
+    width: 100%;
+    height: auto;
+    object-fit: cover; /* Чтобы изображение адаптировалось под контейнер */
+}
+
+.alert {
+    border: none;
+}
+
+/* Контейнер для центрирования */
+.container-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+/* Контейнер для контента */
+.container-base {
+    max-width: 650px;
+    width: 100%;
+    padding: 20px;
+    background-color: var(--container-background);
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.container-base h2 {
+    color: #a33131;
+}
+/* Картинка или видео */
+.file-preview {
+    max-width: 100%;
+    height: auto;
+    margin: 20px 0;
+}
+
+/* Адаптивность */
+@media (max-width: 600px) {
+    .container-base {
+        padding: 15px;
+    }
+    
+    .container-wrapper{
+        padding: 10px;
+    }
+}
+
+.file-preview-audio {
+    display: block;
+    width: 100%; /* Аудиоплеер будет занимать всю ширину контейнера */
+    max-width: 600px; /* Максимальная ширина для плеера */
+    margin: 20px auto; /* Добавим отступы сверху и снизу, а также выравнивание по центру */
+    border-radius: 5px; /* Скругление углов */
+    background-color: #f7f7f7; /* Фон для аудиоплеера */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Тень для более стильного вида */
+}
+
+.loading-indicator {
+    justify-content: center; /* Центрируем по вертикали */
+    align-items: center; /* Центрируем по горизонтали */
+}
+
+.loader {
+    height: 22px;
+    border-radius: 20px;
+    color: var(--border-color);
+    border: 2px solid;
+    position: relative;
+  }
+  .loader::before {
+    content: "";
+    position: absolute;
+    margin: 2px;
+    inset: 0 100% 0 0;
+    border-radius: inherit;
+    background: currentColor;
+    animation: l6 2s infinite;
+  }
+  @keyframes l6 {
+      100% {inset:0}
+  }

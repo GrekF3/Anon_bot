@@ -11,6 +11,7 @@ import mimetypes
 import uuid, base64
 from cryptography.fernet import Fernet
 
+
 # Вспомогательная функция для удаления файла
 def delete_file(file_record):
     file_path = file_record.file.path
@@ -20,14 +21,14 @@ def delete_file(file_record):
 
 @csrf_exempt
 def upload_file(request):
-    import time
     if request.method == 'POST':
         uploaded_file = request.FILES.get('file')
         unique_key = request.POST.get('key')
         file_type = request.POST.get('type')
         text = request.POST.get('text', '')
         mime_type = request.POST.get('mime_type')
-                
+        expiry_duration = request.POST.get('expiry_duration')  # Получаем срок жизни файла из запроса
+
         if uploaded_file and unique_key and file_type:
             try:
                 # Чтение содержимого файла
@@ -49,7 +50,6 @@ def upload_file(request):
                 # Определение MIME-типа
                 if not mime_type:
                     mime_type = 'application/octet-stream'
-
                 print(f"Определённый MIME-тип: {mime_type}")
 
                 # Создание записи в базе данных
@@ -61,6 +61,16 @@ def upload_file(request):
                     text=text,
                     mime_type=mime_type  # Сохраняем MIME-тип
                 )
+
+                # Установка срока жизни файла, если он указан
+                if expiry_duration != 'one_time':
+                    try:
+                        expiry_duration, _ = str(expiry_duration).split('_')
+                        expiry_duration = int(expiry_duration)
+                        file_record.set_expiry(expiry_duration)
+                        print(f"Срок жизни файла установлен: {expiry_duration} дней")
+                    except ValueError:
+                        print("Ошибка: Неверный формат срока жизни файла")
 
                 # Создание полного URL для файла
                 file_url = request.build_absolute_uri(reverse('file_view', args=[unique_key]))
@@ -81,7 +91,6 @@ def upload_file(request):
     
     return JsonResponse({'error': 'Invalid method'}, status=405)
 
-
 @csrf_exempt
 def handle_file_upload(request):
     if request.method == 'POST':
@@ -89,6 +98,7 @@ def handle_file_upload(request):
         unique_key = str(uuid.uuid4())  # Генерация уникального ключа
         text = request.POST.get('text', '')
         mime_type = request.POST.get('mime_type', 'application/octet-stream')
+        expiry_duration = request.POST.get('file_lifetime') 
 
         if uploaded_file:
             try:
@@ -113,11 +123,13 @@ def handle_file_upload(request):
                     file_type = 'image'
                 elif mime_type and mime_type.startswith('video'):
                     file_type = 'video'
+                elif mime_type and mime_type.startswith('audio'):
+                    file_type = 'audio'
                 else:
                     file_type = 'file'
-
+                
                 # Создание записи в базе данных
-                File.objects.create(
+                file = File.objects.create(
                     unique_key=unique_key,
                     file=encrypted_file_content,
                     encryption_key=encryption_key,
@@ -126,13 +138,34 @@ def handle_file_upload(request):
                     mime_type=mime_type
                 )
 
-                print(f"Файл успешно загружен с уникальным ключом: {unique_key}")
+                
+                if expiry_duration == 'one_time':
+                    expiration_str = 'Одноразовая ссылка'
+                else:
+                    try:
+                        expiry_duration, _ = str(expiry_duration).split('_')
+                        expiry_duration = int(expiry_duration)
+                        file.set_expiry(expiry_duration)
+                        print(f"Срок жизни файла установлен: {expiry_duration} дней")
+                        # Определяем правильное склонение
+                        if expiry_duration == 1:
+                            expiration_str = "1 день"
+                        elif 2 <= expiry_duration <= 4:
+                            expiration_str = f"{expiry_duration} дня"
+                        else:
+                            expiration_str = f"{expiry_duration} дней"
+                    except ValueError:
+                        expiration_str = 'не задан'  # Установите значение по умолчанию при ошибке
 
-                # Формируем ссылку на файл (или замените на нужный URL)
-                link = request.build_absolute_uri(reverse('file_view', args=[unique_key]))
+                # Сохранение информации в сессии
+                request.session['upload_success'] = {
+                    'unique_key': unique_key,
+                    'link': request.build_absolute_uri(reverse('file_view', args=[unique_key])),
+                    'file_expiration': expiration_str
+                }
 
-                # Редирект на страницу успеха с параметрами
-                return HttpResponseRedirect(reverse('upload_success') + f"?unique_key={unique_key}&link={link}")
+                # Перенаправление на страницу успешной загрузки
+                return HttpResponseRedirect(reverse('upload_success'))
 
             except Exception as e:
                 print(f"Ошибка при обработке файла: {str(e)}")
@@ -143,20 +176,16 @@ def handle_file_upload(request):
     return JsonResponse({'error': 'Invalid method'}, status=405)
 
 
-
-def home(request):
-    error_message = None
+def home(request, error_message=None):
     error_file_message = None
     upload_form = UploadFileForm()
     search_form = UniqueKeyForm()
-
     if request.method == 'POST':
         if 'unique_key' in request.POST:  # Обработка поиска файла по ключу
             search_form = UniqueKeyForm(request.POST)
             if search_form.is_valid():
                 unique_key = search_form.cleaned_data['unique_key']
                 try:
-                    file_record = File.objects.get(unique_key=unique_key)
                     return redirect('file_view', key=unique_key)
                 except File.DoesNotExist:
                     error_message = "Файл с таким ключом не найден."
@@ -174,84 +203,135 @@ def home(request):
     }
 
     return render(request, 'home.html', context)
+
 # Представление для отображения и скачивания файла
 def file_view(request, key):
+    error_message = None  # Инициализируем переменную для ошибки
+    print("Начало обработки запроса")
+
     try:
         file_record = File.objects.get(unique_key=key)
+        print(f"Файл с ключом {key} найден в базе данных")
     except File.DoesNotExist:
-        return HttpResponse("Такого файла не найдено", status=404)
+        # Сообщение об ошибке, если файла нет
+        error_message = "Такого ключа не существует."
+        return home(request, error_message)
+    
+    # Проверка, доступен ли файл для скачивания
+    if file_record.is_opened:
+        print("Файл уже открыт")
+        # Если файл может быть загружен, но срок его действия истек
+        if file_record.can_be_downloaded and (file_record.is_expired() or file_record.expires_at is None):
+            print("Файл может быть загружен, но срок действия истек или нет даты истечения")
+            # Удаляем файл, так как он уже был открыт или срок действия истек
+            file_path = file_record.file.path
+            file_record.delete()
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                print(f"Файл {file_path} был удален из файловой системы.")
+            return HttpResponse("Файл недоступен для скачивания", status=403)
+    # Если файл был открыт и срок действия истек (если он одноразовый)
+    elif file_record.is_opened and file_record.is_expired():
+        print("Файл был открыт и срок действия истек")
+        # Удаляем файл
+        file_path = file_record.file.path
+        file_record.delete()
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            print(f"Файл {file_path} был удален из файловой системы.")
+        return HttpResponse("Файл недоступен для скачивания", status=403)
 
-    with file_record.file.open('rb') as f:
-        encrypted_data = f.read()
-
-    # Расшифровка данных
+    print("Чтение файла")
+    # Чтение файла
+    try:
+        with file_record.file.open('rb') as f:
+            encrypted_data = f.read()
+    except FileNotFoundError:
+        error_message = "Ошибка: файл не найден."
+        return home(request, error_message)
+    except IOError:
+        error_message = "Ошибка: не удалось прочитать файл."
+        return home(request, error_message)
+    except Exception as e:
+        error_message = (f"Произошла ошибка: {e}")
+        return home(request, error_message)
+    print("Файл прочитан, начинаем расшифровку")
     decrypted_data = decrypt_file(encrypted_data, file_record.encryption_key)
     
     if decrypted_data is None:
+        print("Ошибка расшифровки файла")
         return HttpResponse("Не удалось расшифровать файл. Проверьте ключ шифрования.", status=400)
 
-    mime_type, _ = mimetypes.guess_type(file_record.file.name)
+    mime_type = file_record.mime_type
+    print(f"MIME-тип файла: {mime_type}")
 
-    # Получение информации о файле
-    file_size = len(decrypted_data)  # Размер файла в байтах
-    upload_date = file_record.created_at.strftime('%Y-%m-%d %H:%M:%S')  # Дата загрузки
-
-    # Подготовка контекста для передачи в шаблон
+    file_size = len(decrypted_data) / (1024 * 1024)  # Размер файла в МБ
+    upload_date = file_record.created_at.strftime('%Y-%m-%d %H:%M:%S')
+    print(f"Размер файла: {file_size:.2f} МБ, дата загрузки: {upload_date}")
+    
     context = {
         'file': file_record,
-        'file_size': file_size,
+        'file_size': f"{file_size:.2f} МБ",
         'upload_date': upload_date,
         'mime_type': mime_type,
     }
 
     if file_record.type == 'image':
+        print("Файл является изображением")
         image_base64 = base64.b64encode(decrypted_data).decode('utf-8')
         context['image_data'] = image_base64
-        context['is_image'] = True
-        return render(request, 'file_detail.html', context)
-    
+        render_response = render(request, 'file_detail.html', context)
+
     elif file_record.type == 'video':
+        print("Файл является видео")
         video_base64 = base64.b64encode(decrypted_data).decode('utf-8')
         context['video_data'] = video_base64
-        context['is_video'] = True
-        return render(request, 'file_detail.html', context)
+        render_response = render(request, 'file_detail.html', context)
+
+    elif file_record.type == 'audio':
+        print("Файл является аудио")
+        audio_base64 = base64.b64encode(decrypted_data).decode('utf-8')
+        context['audio_data'] = audio_base64
+        render_response = render(request, 'file_detail.html', context)
 
     elif file_record.type == 'file':
-        # Здесь мы возвращаем информацию о файле, если это обычный файл
-        return render(request, 'file_detail.html', {
-            'file': file_record,
-            'file_size': file_size,
-            'upload_date': upload_date,
-            'mime_type': mime_type,
-            'is_file': True,
-        })
+        print("Файл является простым файлом")
+        render_response = render(request, 'file_detail.html', context)
 
-    # Если не подходит под предыдущие условия, просто возвращаем файл как загрузку
-    response = HttpResponse(decrypted_data, content_type='application/octet-stream')
-    response['Content-Disposition'] = f'attachment; filename="{file_record.file.name}"'
-    return response
+    else:
+        print("Файл неизвестного типа, отправляем как байтовый поток")
+        render_response = HttpResponse(decrypted_data, content_type='application/octet-stream')
+        render_response['Content-Disposition'] = f'attachment; filename="{file_record.file.name}"'
+
+    # Помечаем файл как открытый и запускаем проверку удаления
+    if file_record.is_opened:
+        pass
+    else:
+        link_opened(file_record)
+
+    return render_response
+
+def link_opened(file_record):
+    """
+    Помечает файл как открытый 
+    """
+    if not file_record.is_opened:
+        file_record.mark_as_opened()  # Обновляем статус открытия
 
 # Представление для успешной загрузки
+# Представление для успешной загрузки
 def upload_success_view(request):
-    unique_key = request.GET.get('unique_key')
-    link = request.GET.get('link')
-    if not unique_key or not link:
+    upload_success = request.session.get('upload_success')
+    
+    # Проверка на наличие информации о загрузке
+    if not upload_success:
         return HttpResponseRedirect(reverse('home'))
-    return render(request, 'upload_success.html', {'unique_key': unique_key, 'link': link})
 
-# Представление для удаления файла после закрытия страницы
-@csrf_exempt
-def delete_file_view(request):
-    if request.method == 'POST':
-        data = json.loads(request.body)
-        key = data.get('key')
-        try:
-            file_record = File.objects.get(unique_key=key)
-            delete_file(file_record)
-            return JsonResponse({'status': 'success'})
-        except File.DoesNotExist:
-            return JsonResponse({'status': 'file_not_found'}, status=404)
-    return JsonResponse({'status': 'invalid_method'}, status=405)
+    return render(request, 'upload_success.html', {
+        'unique_key': upload_success['unique_key'],
+        'link': upload_success['link'],
+        'file_expiration': upload_success['file_expiration']
+    })
 
 def decrypt_file(encrypted_data, key):
     try:
@@ -266,6 +346,11 @@ def download_file(request, key):
     # Получение записи файла по уникальному ключу
     file_record = get_object_or_404(File, unique_key=key)
     print(f"Получена запись файла: {file_record}")
+
+    # Проверка, может ли файл быть скачан (одноразовая ссылка или срок жизни)
+    if not file_record.can_be_downloaded():
+        print("Файл недоступен для скачивания. Он был либо уже скачан, либо истек срок его жизни.")
+        return HttpResponse("Файл недоступен для скачивания.", status=403)
 
     with file_record.file.open('rb') as f:
         encrypted_data = f.read()  # Чтение зашифрованных данных
@@ -298,7 +383,13 @@ def download_file(request, key):
     response = HttpResponse(decrypted_data, content_type=mime_type)
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     print("Файл готов к отправке.")
-    delete_file(file_record)
-    print(f"Файл {file_record.file.name} был удалён после скачивания.")
+
+    # Если файл одноразовый, помечаем его как скачанный и удаляем
+    if not file_record.expires_at:  # Если срок жизни не установлен, файл одноразовый
+        file_record.mark_as_downloaded()
+        delete_file(file_record)
+        print(f"Файл {file_record.file.name} был удалён после скачивания (одноразовый файл).")
+    else:
+        print("Файл имеет срок жизни, он не будет удалён после скачивания.")
 
     return response
