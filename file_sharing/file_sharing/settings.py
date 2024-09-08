@@ -17,7 +17,7 @@ from celery.schedules import crontab
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+BASE_URL = '192.168.0.105'
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -29,9 +29,7 @@ SECRET_KEY = 'django-insecure-z(2jwribyh(i$x$4cllkfg+-pv2^%k*&9i0p4b6+e-c-+s_5ul
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
-
-API_URL = os.getenv('API_URL', 'http://web:8000')  # Используйте имя сервиса 'web'
-BASE_URL = os.getenv('BASE_URL', 'http://127.0.0.1:8000')  # Измените на ваш внешний адрес в продакшене
+API_URL = 'http://192.168.0.105/'
 ANON_SUPPORT_TOKEN = '6793726422:AAGaEZ588yVlgKa7OlcNjDwu2RV5t2Z9yQg'
 ANON_TOKEN = '7375576690:AAFP_UV4WWREIDdPINtfEQFYEiks088J2Pw'
 
@@ -46,18 +44,16 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'jsoneditor',
     'file_manager',
     'anon_bot_manager',
     'anon_support_manager',
 ]
 
 ASGI_APPLICATION = 'file_manager.asgi.application'
-JSON_EDITOR_JS = 'https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/8.6.4/jsoneditor.js'
-JSON_EDITOR_CSS = 'https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/8.6.4/jsoneditor.css'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -116,20 +112,28 @@ AUTH_PASSWORD_VALIDATORS = [
 
 
 # Настройки Celery
-CELERY_BROKER_URL = 'redis://localhost:6379/0'
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_BROKER_URL = 'redis://redis:6379/0'
+CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TIMEZONE = 'UTC'
+CELERY_TIMEZONE = 'Europe/Moscow'
+CELERY_TASK_MODULES = ('file_manager.tasks',)
+
+CELERY_BEAT_SCHEDULE = {
+    'delete-expired-files-every-hour': {
+        'task': 'file_manager.tasks.delete_expired_file',
+        'schedule': crontab(minute=0, hour='*'),  # Выполнять каждый час
+    },
+}
 
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'ru'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Europe/Moscow'
 
 USE_I18N = True
 
@@ -138,14 +142,16 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
-import os
-
+# Папка для статики
+STATIC_URL = '/static/'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_DIRS = [BASE_DIR / 'static',]
+if DEBUG:
+    STATICFILES_DIRS = [BASE_DIR / "static"] 
+else:
+    STATIC_ROOT = BASE_DIR / "static"
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field

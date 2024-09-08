@@ -31,11 +31,15 @@
             <!-- Основной контент -->
             <div class="col-lg-7 col-md-9 col-sm-12 mb-4 main-content">
                 
-                <section id="banner" class="d-flex flex-column flex-lg justify-content-center-row gap-3 mt-4">
-                    <a target="_blank" rel="noopener noreferrer" href="https://t.me/AnonLoaderSupport_bot">
-                        <img alt="banner 1" loading="lazy" width="1200" height="600" decoding="async" 
-                             src="{% static "banners/main.gif" %}" class="img-fluid" style="color: transparent;">
-                    </a>
+                <section class="d-flex flex-column flex-lg justify-content-center-row gap-3 mt-4">
+                    {% for banner in ads_banners %}
+                        {% if banner.is_active %}
+                        <a target="_blank" rel="noopener noreferrer" href="{{banner.link}}">
+                            <img alt="{{banner.title}}" loading="lazy" width="1200" height="600" decoding="async" 
+                                src="{{ banner.image.url }}" class="img-fluid" style="color: transparent;">
+                        </a>
+                        {% endif %}
+                    {% endfor %}
                 </section>
                 <!-- Ключ -->
                 <div class="container mt-4">

@@ -61,3 +61,18 @@ class File(models.Model):
         else:
             print("Файл не существует, ничего не удаляем.")
         super().delete(*args, **kwargs)  # Вызывает стандартное удаление
+
+class AdsBanner(models.Model):
+    title = models.CharField(max_length=255, verbose_name="Заголовок")
+    image = models.ImageField(upload_to='bnr_recomends/', verbose_name="Изображение (GIF поддерживается)")
+    link = models.URLField(verbose_name="Ссылка")
+    is_active = models.BooleanField(default=True, verbose_name="Активный")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата обновления")
+
+    def __str__(self):
+        return self.title
+
+    class Meta:
+        verbose_name = "Баннер"
+        verbose_name_plural = "Баннеры"

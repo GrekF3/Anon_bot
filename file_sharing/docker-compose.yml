@@ -9,9 +9,9 @@ services:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgres://skyhelper:NezoX228008!@db:5432/anonloader
-      - API_URL=http://web:8000  # Имя службы для обращения из других контейнеров
     depends_on:
       - db
+      - redis
 
   db:
     image: postgres:latest
@@ -32,8 +32,6 @@ services:
       - web  # Убедитесь, что бот запускается после веб-сервиса
     volumes:
       - .:/app
-    environment:
-      - API_URL=http://web:8000  # Имя службы для обращения к Django
 
   support_bot:
     build: .
@@ -43,8 +41,40 @@ services:
       - web  # Убедитесь, что бот запускается после веб-сервиса
     volumes:
       - .:/app
-    environment:
-      - API_URL=http://web:8000  # Имя службы для обращения к Django
+
+  redis:
+    image: "redis:alpine"
+
+  celery:
+    build: .
+    command: celery -A file_sharing worker -l info
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+      - web
+
+  flower:
+    build: .
+    command: celery -A file_sharing flower
+    volumes:
+      - .:/app
+    depends_on:
+      - celery
+      - web
+    ports:
+    - "5555:5555"  # Добавьте эту строку
+
+  celery_beat:
+    build: .
+    command: celery -A file_sharing beat -l info
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+      - celery
+      - web
+
 
 volumes:
   postgres_data:

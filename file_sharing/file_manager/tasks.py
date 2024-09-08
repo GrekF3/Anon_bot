@@ -6,14 +6,19 @@ from django.utils import timezone
 logger = logging.getLogger(__name__)
 
 @shared_task
-def delete_expired_files():
-    """Удаляет все файлы с истекшим сроком действия."""
-    logger.info("Starting to delete expired files...")
-    expired_files = File.objects.filter(expires_at__lt=timezone.now())
-    logger.info(f"Found {expired_files.count()} expired files.")
-    
-    for file in expired_files:
-        file.delete()  # Удаляем файл из базы данных и файловой системы
-        logger.info(f"Deleted file: {file.id}")
+def delete_expired_file(file_id):
+    logger.info(f"Запустил задание")
+    try:
+        file = File.objects.get(id=file_id)
+        if file.is_expired():
+            file.delete()
+            logger.info(f"File {file_id} has been deleted.")
+        else:
+            logger.info(f"File {file_id} is not expired yet.")
+    except File.DoesNotExist:
+        logger.info(f"File {file_id} does not exist.")
 
-    logger.info("Finished deleting expired files.")
+@shared_task
+def celery_status():
+    """Выводит в консоль, что Celery запущен и работает."""
+    return logger.info("Celery запущен и работает.")
