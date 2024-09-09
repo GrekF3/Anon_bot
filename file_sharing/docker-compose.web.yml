@@ -2,7 +2,7 @@ services:
   web:
     build: 
       context: .
-      dockerfile: dockerfile
+      dockerfile: Dockerfile  # Убедитесь, что у вас есть корректное имя файла
     volumes:
       - static_volume:/home/app/web/staticfiles
       - media_volume:/home/app/web/media
@@ -14,7 +14,6 @@ services:
       - SECRET_KEY=${SECRET_KEY}
     depends_on:
       - db
-      - redis
     command: >
       sh -c "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn --timeout 120 --workers 3 file_sharing.wsgi:application --bind 0.0.0.0:8000"
 
@@ -51,43 +50,7 @@ services:
       - .:/app
     restart: always
     environment:
-      - ANON_BOT_KEY=${ANON_SUPPORT_TOKEN} 
-
-  redis:
-    image: "redis:alpine"
-
-  celery:
-    build: .
-    command: celery -A file_sharing worker -l info
-    volumes:
-      - .:/app
-    depends_on:
-      - redis
-      - web
-    restart: always
-
-  flower:
-    build: .
-    command: celery -A file_sharing flower
-    volumes:
-      - .:/app
-    depends_on:
-      - celery
-      - web
-    ports:
-      - "5555:5555"
-    restart: always
-
-  celery_beat:
-    build: .
-    command: celery -A file_sharing beat -l info
-    volumes:
-      - .:/app
-    depends_on:
-      - redis
-      - celery
-      - web
-    restart: always
+      - ANON_BOT_KEY=${ANON_SUPPORT_TOKEN}
 
 volumes:
   media_volume:

@@ -1,10 +1,17 @@
 # views.py
 
-from django.shortcuts import render, redirect
-from .models import Ticket, User, Operator
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth import authenticate, login
+from .models import Ticket, User, Operator, Message
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.contrib.auth import get_user_model
+import logging
+import requests
+from django.conf import settings
+import os
 
+logger = logging.getLogger(__name__)
 @login_required
 def support_panel_view(request):
     print("support_panel_view called")
@@ -54,3 +61,56 @@ def support_panel_view(request):
         'closed_tickets': closed_tickets,
         'operators': operators,
     })
+
+
+def send_telegram_message(message, user_id):
+    """Отправляет сообщение в Telegram."""
+    url = f"https://api.telegram.org/bot{settings.ANON_SUPPORT_TOKEN}/sendMessage"
+    payload = {
+        'chat_id': user_id,
+        'text': message,
+        'parse_mode': 'Markdown'  # Можно использовать 'Markdown' или 'HTML' в зависимости от ваших потребностей
+    }
+    try:
+        response = requests.post(url, json=payload)
+        response.raise_for_status()  # Поднимает исключение для статусов 4xx и 5xx
+        logger.info(f"Message sent to Telegram: {message}")
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Failed to send message to Telegram: {e}")
+
+
+# Чат с пользователем по тикету
+@login_required
+def ticket_chat(request, ticket_id):
+    logger.debug(f"Accessing ticket_chat for ticket_id: {ticket_id}")
+
+    ticket = get_object_or_404(Ticket, ticket_id=ticket_id)
+    logger.debug(f"Retrieved ticket: {ticket}")
+
+    messages = ticket.messages.all()  # Получаем все сообщения, связанные с тикетом
+    logger.debug(f"Messages for ticket {ticket_id}: {messages.count()} found")
+
+    if request.method == 'POST':
+        message_content = request.POST.get('message')
+        logger.debug(f"Received POST request with message content: {message_content}")
+
+        if message_content:
+            try:
+                user_id = ticket.user.user_id
+                ticket.add_message(sender=ticket.assigned_user, text=message_content)
+                logger.info(f"Message added for ticket {ticket_id} by user")
+                response = send_telegram_message(
+                    message=message_content,
+                    user_id=user_id,
+                )
+                return redirect('ticket_chat', ticket_id=ticket.ticket_id)  # Обновляем страницу
+            except Exception as e:
+                logger.error(f"Error adding message for ticket {ticket_id}: {e}")
+                # Возможно, вы захотите добавить сообщение об ошибке для пользователя
+
+    context = {
+        'ticket': ticket,
+        'chat_messages': messages
+    }
+    logger.debug(f"Rendering chat for ticket_id: {ticket_id}")
+    return render(request, 'support/chat.html', context=context)

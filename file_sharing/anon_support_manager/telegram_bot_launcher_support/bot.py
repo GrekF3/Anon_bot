@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 logging.getLogger('httpx').setLevel(logging.WARNING)  # Для новых версий
 logging.getLogger('telegram').setLevel(logging.WARNING)  # Для старых версий
 # Асинхронные функции взаимодействия с базой данных
+
 async def get_or_create_user(user_id, username):
     user, created = await sync_to_async(User.objects.get_or_create)(user_id=user_id, defaults={'username': username})
     if created:
@@ -289,11 +290,7 @@ async def end_dialog_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
         
         if ticket.status != 'closed':
             ticket.status = 'closed'
-            
-            user_id = await sync_to_async(lambda: ticket.user.user_id)()
             operator_id = await sync_to_async(lambda: ticket.assigned_user.user_id)()
-
-            await context.bot.send_message(chat_id=user_id, text="Ваш диалог был завершен. Спасибо, что пользуетесь нашим сервисом!")
             await context.bot.send_message(chat_id=operator_id, text="Диалог завершен.")
             await query.edit_message_text(f"Диалог по тикету #{ticket_id} завершен.")
 
@@ -347,8 +344,6 @@ async def close_ticket_handler(update: Update, context: ContextTypes.DEFAULT_TYP
 
         if ticket.status != 'closed':
             ticket.status = 'closed'
-            user_id = await sync_to_async(lambda: ticket.user.user_id)()
-            await context.bot.send_message(chat_id=user_id, text="Ваш тикет был закрыт оператором. Спасибо за использование нашего сервиса!")
             await query.edit_message_text(f"Тикет #{ticket_id} был закрыт.")
             await sync_to_async(ticket.save)()
             logger.info(f"Оператор {update.effective_user.username} закрыл тикет #{ticket_id}.")

@@ -10,6 +10,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="{% static 'css/admin.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.css">
+<script src="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.js"></script>
 </head>
 <body>
     <div class="container-fluid">
@@ -34,7 +36,8 @@
                     {% csrf_token %}
                     <div class="mb-3">
                         <label for="message" class="form-label">Сообщение</label>
-                        <textarea class="form-control" id="message" name="message" rows="3" required></textarea>
+                        <!-- Markdown Editor (SimpleMDE) -->
+                        <textarea id="message" name="message" rows="10"></textarea>
                     </div>
                     <div class="mb-3">
                         <label for="image" class="form-label">Изображение (необязательно)</label>
@@ -48,7 +51,16 @@
             </div>
         </div>
 
-        {% elif section == 'manage_users' %}
+        <script>
+            // Инициализация SimpleMDE
+            var simplemde = new SimpleMDE({ element: document.getElementById("message") });
+
+            // При отправке формы сохраняем Markdown в скрытое поле (если нужно)
+            document.querySelector("form").onsubmit = function() {
+                document.getElementById("message").value = simplemde.value();
+            };
+        </script>
+    {% elif section == 'manage_users' %}
         <!-- Раздел для управления пользователями -->
         <div class="card mb-3">
             <div class="card-header">
@@ -101,6 +113,7 @@
                                         <input type="text" name="assigned_user" placeholder="ID оператора" required>
                                         <button type="submit" name="action" value="assign" class="btn btn-success">Назначить оператору</button>
                                     </form>
+                                    <a href="{% url 'ticket_chat' ticket.ticket_id %}" class="btn btn-info">Чат</a>
                                 </div>
                             {% empty %}
                                 <div class="list-group-item">Нет открытых тикетов.</div>
@@ -122,6 +135,7 @@
                                         <input type="hidden" name="ticket_id" value="{{ ticket.ticket_id }}">
                                         <button type="submit" name="action" value="close" class="btn btn-danger">Закрыть тикет</button>
                                     </form>
+                                    <a href="{% url 'ticket_chat' ticket.ticket_id %}" class="btn btn-info">Чат</a>
                                 </div>
                             {% empty %}
                                 <div class="list-group-item">Нет тикетов в работе.</div>
@@ -150,7 +164,7 @@
                             {% for operator in operators %}
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
                                     <div>
-                                        <strong>{{ operator.user.username }}</strong>
+                                        <strong>{{ operator.user.username }} ({{operator.user.user_id}})</strong>
                                     </div>
                                     <span class="badge {% if operator.is_active %}bg-success{% else %}bg-danger{% endif %}">
                                         {% if operator.is_active %}

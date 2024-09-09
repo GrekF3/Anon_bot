@@ -8,7 +8,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgres://skyhelper:NezoX228008!@db:5432/anonloader
+      - DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
     depends_on:
       - db
       - redis
@@ -32,9 +32,9 @@ services:
   db:
     image: postgres:latest
     environment:
-      POSTGRES_DB: anonloader
-      POSTGRES_USER: skyhelper
-      POSTGRES_PASSWORD: NezoX228008!
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
       - "5432:5432"
     volumes:

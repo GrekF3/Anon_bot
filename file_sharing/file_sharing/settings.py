@@ -18,22 +18,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-        },
-    },
-    'loggers': {
-        '': {  # Корневой логгер
-            'handlers': ['console'],
-            'level': 'INFO',
-        },
-    },
-}
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -49,6 +33,26 @@ API_URL = 'http://192.168.0.105/'
 ANON_SUPPORT_TOKEN = os.getenv('ANON_SUPPORT_TOKEN')
 ANON_TOKEN = os.getenv('ANON_TOKEN')
 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        '': {  # Корневой логгер
+            'handlers': ['console'],
+            'level': 'INFO',  # Логи уровня INFO и выше
+        },
+        'django.db.backends': {
+            'handlers': ['console'],
+            'level': 'ERROR',  # Показывать только ошибки базы данных
+            'propagate': False,
+        },
+    },
+}
 
 
 # Application definition

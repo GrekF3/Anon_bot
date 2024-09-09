@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Чат с пользователем</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{% static 'css/admin.css' %}" rel="stylesheet">
+</head>
+<body>
+    <div class="sidebar-sup">
+        <nav class="nav flex-column">
+            <a class="nav-link active" href="{% url 'support_panel' %}">Панель поддержки</a>
+        </nav>
+    </div>
+    
+    <div class="container mt-5 admin-section">
+        <div class="card">
+            <div class="header">
+                <h4>Чат с пользователем: {{ ticket.user.username }}</h4>
+            </div>
+            <div class="card-body">
+                <div id="messages" class="mb-4" style="height: 400px; overflow-y: scroll;">
+                    {% for message in chat_messages %}
+                        <div class="message {% if message.user == ticket.user %}text-left{% else %}text-right{% endif %}">
+                            <strong>{{ message.user.username }}:</strong> {{ message.content }}
+                            <small class="text-muted">{{ message.timestamp|date:"H:i" }}</small>
+                        </div>
+                    {% empty %}
+                        <div class="text-center">Нет сообщений в чате.</div>
+                    {% endfor %}
+                </div>
+    
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="input-group">
+                        <input type="text" name="message" class="form-control" placeholder="Введите ваше сообщение" required>
+                        <div class="input-group-append">
+                            <button class="btn btn-primary" type="submit">Отправить</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <footer class="footer text-center mt-5">
+        <p>&copy; 2024 Поддержка</p>
+    </footer>
+</body>
+</html>
