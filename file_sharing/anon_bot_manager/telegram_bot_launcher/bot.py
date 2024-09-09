@@ -76,5 +76,3 @@ def main() -> None:
     except Exception as e:
         logger.exception("Критическая ошибка при запуске бота: %s", e)
 
-if __name__ == "__main__":
-    main()

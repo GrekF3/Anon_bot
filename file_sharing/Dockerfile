@@ -2,19 +2,29 @@
 FROM python:3.12.3
 
 # Отключаем буферизацию вывода Python
-ENV PYTHONUNBUFFERED=1
+ENV HOME=/home/app
+ENV APP_HOME=/home/app/web
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+# Создаем необходимые директории
+RUN mkdir -p $APP_HOME
+RUN mkdir -p $APP_HOME/staticfiles
 
 # Устанавливаем рабочую директорию
-WORKDIR /app
+WORKDIR $APP_HOME
 
-# Копируем файл с зависимостями
+# Обновляем pip
+RUN pip install --upgrade pip 
+
+# Копируем только requirements.txt для установки зависимостей
 COPY requirements.txt .
 
 # Устанавливаем зависимости
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt
 
-# Копируем остальные файлы проекта
+# Копируем все файлы проекта
 COPY . .
 
-# Выполняем миграции и запускаем сервер Gunicorn
-CMD ["sh", "-c", "python manage.py migrate && gunicorn --bind 0.0.0.0:8000 file_sharing.wsgi:application --workers 3"]
+# Запускаем миграции
+RUN python manage.py makemigrations

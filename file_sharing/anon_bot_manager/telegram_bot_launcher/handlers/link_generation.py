@@ -19,6 +19,14 @@ SELECTING_FILE_TYPE = 'selecting_file_type'
 WAITING_FOR_FILE = 'waiting_for_file'
 WAITING_FOR_IMAGE_TEXT = 'waiting_for_image_text'
 
+#LINK
+URL = os.getenv('URL')
+if settings.DEBUG == True:
+    LOCAL_URL = 'http://127.0.0.1:8000'
+else:
+    LOCAL_URL = URL
+
+
 async def generate_link(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     logger.info("Пользователь запрашивает генерацию ссылки")
     context.user_data['state'] = SELECTING_FILE_TYPE
@@ -229,7 +237,7 @@ async def link_lifetime_selected(update: Update, context: ContextTypes.DEFAULT_T
     loading_message = await query.message.edit_text("Загрузка файла на сервер...")
 
     try:
-        response = requests.post(f'{settings.API_URL}/upload/', data=data, files=files)
+        response = requests.post(f'{URL}/upload/', data=data, files=files)
 
         if response.status_code == 200:
             response_data = response.json()
@@ -256,7 +264,7 @@ async def link_lifetime_selected(update: Update, context: ContextTypes.DEFAULT_T
 
             await loading_message.edit_text(
                 f"Ваш файл был успешно загружен на сервер.\n"
-                f"Ссылка на ваш файл: {settings.BASE_URL}/file/{unique_key}\n"
+                f"Ссылка на ваш файл: {LOCAL_URL}/file/{unique_key}\n"
                 f"Ключ доступа к файлу: <code>{unique_key}</code>\n"
                 f"Срок жизни файла: {lifetime_display}\n"
                 f"Количество доступных открытий ссылки: {download_count}",

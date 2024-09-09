@@ -13,25 +13,41 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 from pathlib import Path
 import os
 from celery.schedules import crontab
+import logging
+from dotenv import load_dotenv
 
+load_dotenv()
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        '': {  # Корневой логгер
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+    },
+}
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-BASE_URL = '192.168.0.105'
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-z(2jwribyh(i$x$4cllkfg+-pv2^%k*&9i0p4b6+e-c-+s_5ul'
-
+SECRET_KEY = os.environ.get('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
+BASE_URL = '192.168.0.105'
 API_URL = 'http://192.168.0.105/'
-ANON_SUPPORT_TOKEN = '6793726422:AAGaEZ588yVlgKa7OlcNjDwu2RV5t2Z9yQg'
-ANON_TOKEN = '7375576690:AAFP_UV4WWREIDdPINtfEQFYEiks088J2Pw'
+ANON_SUPPORT_TOKEN = os.getenv('ANON_SUPPORT_TOKEN')
+ANON_TOKEN = os.getenv('ANON_TOKEN')
 
 
 
@@ -53,13 +69,16 @@ ASGI_APPLICATION = 'file_manager.asgi.application'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    ############## Убрать на PROD ################
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    ##############################################
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'file_sharing.middleware.RequestLogMiddleware',
 ]
 
 ROOT_URLCONF = 'file_sharing.urls'
@@ -83,9 +102,9 @@ TEMPLATES = [
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'anonloader',
-        'USER': 'skyhelper',
-        'PASSWORD': 'NezoX228008!',
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
         'HOST': 'db',
         'PORT': '5432',
     }
@@ -145,12 +164,10 @@ USE_TZ = True
 # Папка для статики
 STATIC_URL = '/static/'
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-if DEBUG:
-    STATICFILES_DIRS = [BASE_DIR / "static"] 
-else:
-    STATIC_ROOT = BASE_DIR / "static"
+STATIC_ROOT = BASE_DIR / "static" 
+MEDIA_ROOT = BASE_DIR / "media"
+
 
 
 # Default primary key field type
