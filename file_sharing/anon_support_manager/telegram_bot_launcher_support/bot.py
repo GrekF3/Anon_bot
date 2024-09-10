@@ -4,9 +4,12 @@ import django
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler, ContextTypes
 from django.conf import settings
-from anon_support_manager.models import User, Ticket, Operator, Message  # Импортируем модель Message
+from anon_support_manager.models import User, Ticket, Operator  # Импортируем модель Message
 from django.utils import timezone
 from asgiref.sync import sync_to_async
+import base64
+from channels.layers import get_channel_layer
+
 
 # Установка переменной окружения для настроек Django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'file_sharing.settings')
@@ -20,6 +23,29 @@ logger = logging.getLogger(__name__)
 logging.getLogger('httpx').setLevel(logging.WARNING)  # Для новых версий
 logging.getLogger('telegram').setLevel(logging.WARNING)  # Для старых версий
 # Асинхронные функции взаимодействия с базой данных
+
+
+async def send_message_to_websocket(ticket_id, message):
+    channel_layer = get_channel_layer()
+    # Проверяем, является ли сообщение изображением
+    if isinstance(message, dict) and 'image_data' in message:
+        await channel_layer.group_send(
+            f"support_{ticket_id}",
+            {
+                "type": "image_message",  # Новый тип для обработки изображений
+                "image_data": message['image_data']
+            }
+        )
+    else:
+        await channel_layer.group_send(
+            f"support_{ticket_id}",
+            {
+                "type": "chat_message",
+                "message": message
+            }
+        )
+
+
 
 async def get_or_create_user(user_id, username):
     user, created = await sync_to_async(User.objects.get_or_create)(user_id=user_id, defaults={'username': username})
@@ -167,9 +193,42 @@ async def send_available_tickets(update: Update, context: ContextTypes.DEFAULT_T
 async def handle_user_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Обрабатывает сообщения от пользователей и операторов."""
     user_id = update.effective_user.id
-    question = update.message.text
     user = await get_or_create_user(user_id, update.effective_user.username)
+    
+    # Проверяем, пришло ли изображение
+    if update.message.photo:
+        document = update.message.photo[-1]
+        file_id = document.file_id  # Получаем самое высокое качество изображения
+        photo = await document.get_file()
+        logger.info(f"Получено изображение от пользователя {user.username} ({user_id}).")
+
+        # Получаем изображение как байтовый массив
+        image_data = await photo.download_as_bytearray()
+        
+        # Если нужно отправить в формате base64
+        encoded_image_data = base64.b64encode(image_data).decode('utf-8')
+
+        # Ищем открытый тикет
+        open_ticket = await sync_to_async(lambda: Ticket.objects.filter(user=user, status__in=['in_progress', 'new']).first())()
+        if open_ticket:
+            ticket_id = open_ticket.ticket_id  # Получаем идентификатор тикета
+            await sync_to_async(open_ticket.add_message)(user, "Изображение отправлено.")  # Сохраняем сообщение
+            operator_user = await sync_to_async(lambda: open_ticket.assigned_user)()
+
+            # Отправляем изображение оператору
+            await context.bot.send_photo(chat_id=operator_user.user_id, photo=file_id, caption=f"Пользователь #{ticket_id} отправил изображение.")
+
+            # Отправляем данные изображения в вебсокет
+            await send_message_to_websocket(ticket_id, {'image_data': encoded_image_data})
+        else:
+            # Обработка случая, когда открытого тикета нет
+            await update.message.reply_text("Пожалуйста, сначала создайте тикет.")
+        return
+
+    # Обработка текстовых сообщений
+    question = update.message.text
     logger.info(f"Получено сообщение от пользователя {user.username} ({user_id}): {question}")
+
     operator = await get_operator_by_user(user)
     if operator:
         logger.info(f"Пользователь {user.username} является оператором.")
@@ -185,6 +244,7 @@ async def handle_user_message(update: Update, context: ContextTypes.DEFAULT_TYPE
             logger.info(f"Оператор {user.username} проверяет тикеты.")
             await send_available_tickets(update, context)
             return
+
     # Проверяем, есть ли открытый тикет у пользователя
     open_ticket = await sync_to_async(lambda: Ticket.objects.filter(user=user, status__in=['in_progress', 'new']).first())()
     if open_ticket:
@@ -200,6 +260,9 @@ async def handle_user_message(update: Update, context: ContextTypes.DEFAULT_TYPE
             reply_markup = InlineKeyboardMarkup(keyboard)
             logger.info(f"Сообщение пользователя {user.username} по тикету #{ticket_id} отправлено оператору {operator_user.username}.")
             await context.bot.send_message(chat_id=operator_user.user_id, text=f"Пользователь #{ticket_id} спросил: {question}", reply_markup=reply_markup)
+
+            # Отправляем текстовое сообщение в вебсокет
+            await send_message_to_websocket(ticket_id, {'message': question})
         else:
             logger.info(f"Сообщение пользователя {user.username} по тикету #{ticket_id} отправлено активным операторам.")
             await notify_operators_of_user_message(context, ticket_id, user_id, question)
@@ -211,7 +274,8 @@ async def handle_user_message(update: Update, context: ContextTypes.DEFAULT_TYPE
             status='new',
             created_at=timezone.now()
         )
-        logger.info(f"Создан новый тикет #{ticket.ticket_id} для пользователя {user.username}.")
+        ticket_id = ticket.ticket_id  # Присваиваем ticket_id нового тикета
+        logger.info(f"Создан новый тикет #{ticket_id} для пользователя {user.username}.")
 
         # Сохранение сообщения в истории нового тикета
         await sync_to_async(ticket.add_message)(user, question)
@@ -344,7 +408,7 @@ def main():
     logger.info(f"Регистрация обработчиков...")
     application.add_handler(CommandHandler("start", start))
     logger.info(f"Обработчик команды /start запущен.")
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_user_message))
+    application.add_handler(MessageHandler(filters.ALL, handle_user_message))
     logger.info(f"Обработчик сообщений запущен.")
     application.add_handler(CallbackQueryHandler(end_dialog_handler, pattern=r"end_dialog_\d+"))
     application.add_handler(CallbackQueryHandler(take_ticket_handler, pattern=r"take_\d+"))

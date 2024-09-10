@@ -14,8 +14,9 @@ services:
       - SECRET_KEY=${SECRET_KEY}
     depends_on:
       - db
+      - redis
     command: >
-      sh -c "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn --timeout 120 --workers 3 file_sharing.wsgi:application --bind 0.0.0.0:8000"
+      sh -c "python manage.py migrate && python manage.py collectstatic --noinput && daphne -b 0.0.0.0 -p 8000 file_sharing.asgi:application"
 
   db:
     image: postgres:latest
@@ -39,6 +40,9 @@ services:
     restart: always
     environment:
       - ANON_BOT_KEY=${ANON_TOKEN}
+
+  redis:
+    image: "redis:alpine"
 
   support_bot:
     build: .

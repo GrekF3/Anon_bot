@@ -1,16 +1,17 @@
-"""
-ASGI config for file_sharing project.
-
-It exposes the ASGI callable as a module-level variable named ``application``.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/5.1/howto/deployment/asgi/
-"""
-
-import os
-
+from channels.routing import ProtocolTypeRouter, URLRouter
+from channels.auth import AuthMiddlewareStack
 from django.core.asgi import get_asgi_application
+import os
+from django.urls import path
+from anon_support_manager.consumers import SupportConsumer
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'file_sharing.settings')
 
-application = get_asgi_application()
+application = ProtocolTypeRouter({
+    "http": get_asgi_application(),
+    "websocket": AuthMiddlewareStack(
+        URLRouter([
+            path('ws/support/<str:ticket_id>/', SupportConsumer.as_asgi()),
+        ])
+    ),
+})

@@ -1,15 +1,16 @@
 # views.py
 
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth import authenticate, login
-from .models import Ticket, User, Operator, Message
+from django.shortcuts import render, get_object_or_404
+from .models import Ticket, User, Operator
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 import logging
 import requests
 from django.conf import settings
-import os
+from django.http import JsonResponse
+import json
+
 
 logger = logging.getLogger(__name__)
 @login_required
@@ -82,35 +83,35 @@ def send_telegram_message(message, user_id):
 # Чат с пользователем по тикету
 @login_required
 def ticket_chat(request, ticket_id):
-    logger.debug(f"Accessing ticket_chat for ticket_id: {ticket_id}")
+    logger.debug(f"Доступ к чату по тикету с ID: {ticket_id}")
 
     ticket = get_object_or_404(Ticket, ticket_id=ticket_id)
-    logger.debug(f"Retrieved ticket: {ticket}")
+    logger.debug(f"Получен тикет: {ticket}")
 
     messages = ticket.messages.all()  # Получаем все сообщения, связанные с тикетом
-    logger.debug(f"Messages for ticket {ticket_id}: {messages.count()} found")
+    logger.debug(f"Сообщения для тикета {ticket_id}: найдено {messages.count()}")
 
     if request.method == 'POST':
-        message_content = request.POST.get('message')
-        logger.debug(f"Received POST request with message content: {message_content}")
+        message_content = json.loads(request.body).get('message')  # Получаем сообщение из JSON
+        logger.debug(f"Получен POST-запрос с содержанием сообщения: {message_content}")
 
         if message_content:
             try:
                 user_id = ticket.user.user_id
                 ticket.add_message(sender=ticket.assigned_user, text=message_content)
-                logger.info(f"Message added for ticket {ticket_id} by user")
+                logger.info(f"Сообщение добавлено для тикета {ticket_id} от оператора")
                 response = send_telegram_message(
                     message=message_content,
                     user_id=user_id,
                 )
-                return redirect('ticket_chat', ticket_id=ticket.ticket_id)  # Обновляем страницу
+                return JsonResponse({'success': True})  # Возвращаем успешный ответ в формате JSON
             except Exception as e:
-                logger.error(f"Error adding message for ticket {ticket_id}: {e}")
-                # Возможно, вы захотите добавить сообщение об ошибке для пользователя
+                logger.error(f"Ошибка при добавлении сообщения для тикета {ticket_id}: {e}")
+                return JsonResponse({'success': False, 'error': str(e)}, status=400)  # Возвращаем ошибку
 
     context = {
         'ticket': ticket,
         'chat_messages': messages
     }
-    logger.debug(f"Rendering chat for ticket_id: {ticket_id}")
+    logger.debug(f"Отображение чата для тикета с ID: {ticket_id}")
     return render(request, 'support/chat.html', context=context)

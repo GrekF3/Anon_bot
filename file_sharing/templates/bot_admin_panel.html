@@ -17,51 +17,55 @@
     <div class="container-fluid">
         <h1 class="mt-4">👥 Панель Администратора</h1>
 
-        <!-- Навигационное меню -->
         <nav class="nav nav-pills flex-column flex-sm-row mb-4">
-            <a class="flex-sm-fill text-sm-center nav-link {% if section == 'broadcast' %}active{% endif %}" href="{% url 'broadcast' %}"><i class="fas fa-paper-plane"></i> Сделать рассылку</a>
-            <a class="flex-sm-fill text-sm-center nav-link {% if section == 'manage_users' %}active{% endif %}" href="{% url 'manage_users' %}"><i class="fas fa-users"></i> Управление пользователями</a>
+            {% if user.is_superuser %}
+                <a class="flex-sm-fill text-sm-center nav-link {% if section == 'broadcast' %}active{% endif %}" href="{% url 'broadcast' %}"><i class="fas fa-paper-plane"></i> Сделать рассылку</a>
+                <a class="flex-sm-fill text-sm-center nav-link {% if section == 'manage_users' %}active{% endif %}" href="{% url 'manage_users' %}"><i class="fas fa-users"></i> Управление пользователями</a>
+            {% endif %}
             <a class="flex-sm-fill text-sm-center nav-link {% if section == 'support_panel' %}active{% endif %}" href="{% url 'support_panel' %}"><i class="fas fa-headset"></i> Панель поддержки</a>
         </nav>
 
-        <!-- Отображение контента в зависимости от выбранного раздела -->
         {% if section == 'broadcast' %}
         <!-- Раздел для рассылки -->
-        <div class="card mb-3">
-            <div class="card-header">
-                <h2>📢 Сделать рассылку</h2>
+        {% if user.is_superuser %}
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h2>📢 Сделать рассылку</h2>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="message" class="form-label">Сообщение</label>
+                            <!-- Markdown Editor (SimpleMDE) -->
+                            <textarea id="message" name="message" rows="10"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="image" class="form-label">Изображение (необязательно)</label>
+                            <input class="form-control" type="file" id="image" name="image">
+                        </div>
+                        {% if status %}
+                            <div class="alert alert-success">{{ status }}</div>
+                        {% endif %}
+                        <button type="submit" class="btn btn-primary">Отправить</button>
+                    </form>
+                </div>
             </div>
-            <div class="card-body">
-                <form method="post" enctype="multipart/form-data">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label for="message" class="form-label">Сообщение</label>
-                        <!-- Markdown Editor (SimpleMDE) -->
-                        <textarea id="message" name="message" rows="10"></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label for="image" class="form-label">Изображение (необязательно)</label>
-                        <input class="form-control" type="file" id="image" name="image">
-                    </div>
-                    {% if status %}
-                        <div class="alert alert-success">{{ status }}</div>
-                    {% endif %}
-                    <button type="submit" class="btn btn-primary">Отправить</button>
-                </form>
-            </div>
-        </div>
+            <script>
+                // Инициализация SimpleMDE
+                var simplemde = new SimpleMDE({ element: document.getElementById("message") });
 
-        <script>
-            // Инициализация SimpleMDE
-            var simplemde = new SimpleMDE({ element: document.getElementById("message") });
-
-            // При отправке формы сохраняем Markdown в скрытое поле (если нужно)
-            document.querySelector("form").onsubmit = function() {
-                document.getElementById("message").value = simplemde.value();
-            };
-        </script>
-    {% elif section == 'manage_users' %}
+                // При отправке формы сохраняем Markdown в скрытое поле (если нужно)
+                document.querySelector("form").onsubmit = function() {
+                    document.getElementById("message").value = simplemde.value();
+                };
+            </script>
+        {% else %}
+            <h2>У вас нет доступа к этому разделу</h2>
+        {% endif %}
+        {% elif section == 'manage_users' %}
         <!-- Раздел для управления пользователями -->
+        {% if user.is_superuser %}
         <div class="card mb-3">
             <div class="card-header">
                 <h2>👤 Управление пользователями</h2>
@@ -80,7 +84,9 @@
                 </ul>
             </div>
         </div>
-
+        {% else %}
+            <h2>У вас нет доступа к этому разделу</h2>
+        {% endif %}
         {% elif section == 'support_panel' %}
         <!-- Панель поддержки -->
         <div class="card mb-3">
@@ -182,8 +188,7 @@
                 </div>
             </div>
         </div>
-
-    {% endif %}
+        {% endif %}
     </div>
 
     <script src="{% static 'js/admin.js' %}"></script>
