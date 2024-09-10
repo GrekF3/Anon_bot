@@ -2,7 +2,7 @@ services:
   web:
     build: 
       context: .
-      dockerfile: Dockerfile  # Убедитесь, что у вас есть корректное имя файла
+      dockerfile: Dockerfile  
     volumes:
       - static_volume:/home/app/web/staticfiles
       - media_volume:/home/app/web/media

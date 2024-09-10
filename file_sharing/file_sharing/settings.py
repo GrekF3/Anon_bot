@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     'file_manager',
     'anon_bot_manager',
     'anon_support_manager',
+    'channels',
 ]
 
 ASGI_APPLICATION = 'file_manager.asgi.application'
