@@ -28,8 +28,8 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
-BASE_URL = '192.168.0.105'
-API_URL = 'http://192.168.0.105/'
+BASE_URL = '109.120.152.24'
+API_URL = 'http://109.120.152.24/'
 ANON_SUPPORT_TOKEN = os.getenv('ANON_SUPPORT_TOKEN')
 ANON_TOKEN = os.getenv('ANON_TOKEN')
 
@@ -84,7 +84,7 @@ CHANNEL_LAYERS = {
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     ############## Убрать на PROD ################
-    'whitenoise.middleware.WhiteNoiseMiddleware',
+    # 'whitenoise.middleware.WhiteNoiseMiddleware',
     ##############################################
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -179,11 +179,10 @@ USE_TZ = True
 STATIC_URL = '/static/'
 MEDIA_URL = '/media/'
 
-STATIC_ROOT = BASE_DIR / "static" 
+STATIC_ROOT = BASE_DIR / "staticfiles" 
 MEDIA_ROOT = BASE_DIR / "media"
 
-
-
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 

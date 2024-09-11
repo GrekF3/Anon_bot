@@ -54,14 +54,15 @@
             operator: "{{ ticket.assigned_user.username }}"
         };
         
-        const socket = new WebSocket(`ws://localhost:8000/ws/support/${ticket.ticket_id}/`);
+        const socket = new WebSocket(`ws://109.120.152.24/ws/support/${ticket.ticket_id}/`);
         
         socket.onmessage = function(e) {
             var data = JSON.parse(e.data);
         
             // Обработка текстовых сообщений
             if (data.type === 'message') {
-                var message = data.message;
+                var message = data.message.message;
+
         
                 // Создаем новый элемент для сообщения
                 var messageElement = document.createElement('div');

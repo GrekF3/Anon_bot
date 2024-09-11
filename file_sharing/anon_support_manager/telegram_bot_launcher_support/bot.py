@@ -195,6 +195,28 @@ async def handle_user_message(update: Update, context: ContextTypes.DEFAULT_TYPE
     user_id = update.effective_user.id
     user = await get_or_create_user(user_id, update.effective_user.username)
     
+    # Обработка текстовых сообщений
+    question = update.message.text
+    logger.info(f"Получено сообщение от пользователя {user.username} ({user_id}): {question}")
+
+    operator = await get_operator_by_user(user)
+    if operator:
+        logger.info(f"Пользователь {user.username} является оператором.")
+        if question == "Начать смену":
+            logger.info(f"Оператор {user.username} начал смену.")
+            await start_shift(update, context)
+            return
+        elif question == "Закончить смену":
+            logger.info(f"Оператор {user.username} завершил смену.")
+            await end_shift(update, context)
+            return
+        elif question == "Проверить тикеты":
+            logger.info(f"Оператор {user.username} проверяет тикеты.")
+            await send_available_tickets(update, context)
+            return
+        else:
+            return
+        
     # Проверяем, пришло ли изображение
     if update.message.photo:
         document = update.message.photo[-1]
@@ -224,26 +246,6 @@ async def handle_user_message(update: Update, context: ContextTypes.DEFAULT_TYPE
             # Обработка случая, когда открытого тикета нет
             await update.message.reply_text("Пожалуйста, сначала создайте тикет.")
         return
-
-    # Обработка текстовых сообщений
-    question = update.message.text
-    logger.info(f"Получено сообщение от пользователя {user.username} ({user_id}): {question}")
-
-    operator = await get_operator_by_user(user)
-    if operator:
-        logger.info(f"Пользователь {user.username} является оператором.")
-        if question == "Начать смену":
-            logger.info(f"Оператор {user.username} начал смену.")
-            await start_shift(update, context)
-            return
-        elif question == "Закончить смену":
-            logger.info(f"Оператор {user.username} завершил смену.")
-            await end_shift(update, context)
-            return
-        elif question == "Проверить тикеты":
-            logger.info(f"Оператор {user.username} проверяет тикеты.")
-            await send_available_tickets(update, context)
-            return
 
     # Проверяем, есть ли открытый тикет у пользователя
     open_ticket = await sync_to_async(lambda: Ticket.objects.filter(user=user, status__in=['in_progress', 'new']).first())()

@@ -22,7 +22,7 @@ WAITING_FOR_IMAGE_TEXT = 'waiting_for_image_text'
 #LINK
 URL = os.getenv('URL')
 if settings.DEBUG == True:
-    LOCAL_URL = 'http://127.0.0.1:8000'
+    LOCAL_URL = 'http://109.120.152.24'
 else:
     LOCAL_URL = URL
 
