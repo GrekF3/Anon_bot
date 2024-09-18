@@ -54,7 +54,7 @@
             operator: "{{ ticket.assigned_user.username }}"
         };
         
-        const socket = new WebSocket(`ws://109.120.152.24/ws/support/${ticket.ticket_id}/`);
+        const socket = new WebSocket(`wss://anonloader.io/ws/support/${ticket.ticket_id}/`);
         
         socket.onmessage = function(e) {
             var data = JSON.parse(e.data);

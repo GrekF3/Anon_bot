@@ -14,8 +14,9 @@ body {
     background-color: #2b2b2b;
     padding: 20px;
     border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 10px rgba(0, 0, 0, .5);
     max-width: 500px;
+    width: 100%; /* Обеспечиваем адаптивность контейнера */
 }
 
 h1 {
@@ -39,4 +40,12 @@ a {
 
 a:hover {
     text-decoration: underline;
+}
+
+/* Добавляем стили для изображения QR-кода */
+.qr-code {
+    max-width: 100%; /* Ограничиваем ширину изображения 100% ширины контейнера */
+    height: auto; /* Сохраняем пропорции изображения */
+    margin-top: 10px; /* Отступ сверху для изображения */
+    border-radius: 10px; /* Скругляем углы изображения */
 }

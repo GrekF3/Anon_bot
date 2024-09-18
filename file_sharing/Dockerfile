@@ -22,6 +22,5 @@ COPY requirements.txt .
 
 # Устанавливаем зависимости
 RUN pip install -r requirements.txt
-
 # Копируем все файлы проекта
 COPY . .

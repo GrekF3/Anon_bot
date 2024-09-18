@@ -5,19 +5,42 @@ services:
       dockerfile: Dockerfile  
     volumes:
       - static_volume:/home/app/web/staticfiles
-      - media_volume:/home/app/web/media
-      - .:/app  # Монтирование текущей директории
+      - media_volume:/home/app/web/media   
+      - .:/app                     
     ports:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
-      - SECRET_KEY=${SECRET_KEY}
     depends_on:
       - db
       - redis
     command: >
       sh -c "python manage.py migrate && python manage.py collectstatic --noinput && daphne -b 0.0.0.0 -p 8000 file_sharing.asgi:application"
 
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - static_volume:/home/app/web/staticfiles
+      - media_volume:/home/app/web/media
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - web
+    restart: always
+
+  certbot:
+    image: certbot/certbot:latest
+    container_name: certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    command: certonly --webroot -w /var/www/certbot --force-renewal --email lider2928@gmail.com -d anonloader.io --agree-tos
+    
   db:
     image: postgres:latest
     environment:
@@ -41,6 +64,18 @@ services:
     environment:
       - ANON_BOT_KEY=${ANON_TOKEN}
 
+  support_bot:
+    build: .
+    command: python manage.py support
+    depends_on:
+      - db
+      - web
+    volumes:
+      - .:/app
+    restart: always
+    environment:
+      - ANON_BOT_KEY=${ANON_SUPPORT_TOKEN}
+
   redis:
     image: "redis:alpine"
 
@@ -55,19 +90,31 @@ services:
       - web
     restart: always
 
-  support_bot:
+  flower:
     build: .
-    command: python manage.py support
-    depends_on:
-      - db
-      - web
+    command: celery -A file_sharing flower
     volumes:
       - .:/app
+    depends_on:
+      - celery
+      - web
+    ports:
+      - "5555:5555"
     restart: always
-    environment:
-      - ANON_BOT_KEY=${ANON_SUPPORT_TOKEN}
+
+  celery_beat:
+    build: .
+    command: celery -A file_sharing beat -l info
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+      - celery
+      - web
+    restart: always
 
 volumes:
   media_volume:
   static_volume:
   postgres_data:
+  nginx_logs:

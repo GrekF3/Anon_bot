@@ -4,18 +4,25 @@ from django.urls import reverse
 from django.conf.urls import handler404
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.views.decorators.csrf import csrf_exempt
+from django.utils.timezone import now
 from django.core.files.base import ContentFile
+from django.conf import settings
 # -------MODELS
 from .models import File, AdsBanner
 from .forms import UniqueKeyForm, UploadFileForm
-
+from .tasks import delete_qr_code_file
 # -------LOGICAL BASE
 import os
 import mimetypes
 import uuid, base64
 from cryptography.fernet import Fernet
 import logging
-
+from PIL import Image
+import qrcode
+from qrcode.image.styledpil import StyledPilImage
+from qrcode.image.styles.moduledrawers import RoundedModuleDrawer
+from qrcode.image.styles.colormasks import RadialGradiantColorMask
+from datetime import timedelta
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -30,6 +37,39 @@ def delete_file(file_record):
     file_record.delete()
     if os.path.exists(file_path):
         os.remove(file_path)
+
+
+def generate_custom_qr_code(link, size=300, logo_path=None):
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_H,  # Максимальная коррекция для лого
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(link)
+    qr.make(fit=True)
+
+    # Генерация QR-кода с круглыми модулями и градиентной заливкой
+    qr_img = qr.make_image(
+        image_factory=StyledPilImage,
+        module_drawer=RoundedModuleDrawer(),
+        color_mask=RadialGradiantColorMask(back_color=(255, 255, 255), center_color=(0, 0, 0), edge_color=(100, 100, 255))
+    )
+
+    qr_img = qr_img.convert("RGB")
+    qr_img = qr_img.resize((size, size))
+
+    # Добавление логотипа в центр QR-кода, если есть
+    if logo_path:
+        logo = Image.open(logo_path)
+        logo_size = size // 5  # Лого будет занимать 1/5 QR-кода
+        logo = logo.resize((logo_size, logo_size))
+
+        # Определение позиции для вставки логотипа в центр QR-кода
+        pos = ((qr_img.width - logo.width) // 2, (qr_img.height - logo.height) // 2)
+        qr_img.paste(logo, pos, logo)
+
+    return qr_img
 
 def custom_404(request, exception):
     return render(request, '404.html', status=404)
@@ -119,13 +159,9 @@ def handle_file_upload(request):
             try:
                 # Чтение содержимого файла
                 file_data = uploaded_file.read()
-                logger.info(f"Прочитанные данные файла (размер: {len(file_data)} байт)")
 
-                # Генерация ключа шифрования
+                # Генерация ключа шифрования и шифрование файла
                 encryption_key = Fernet.generate_key().decode()
-                logger.info(f"Сгенерированный ключ шифрования: {encryption_key}")
-
-                # Шифрование файла
                 fernet = Fernet(encryption_key.encode())
                 encrypted_file_data = fernet.encrypt(file_data)
 
@@ -134,14 +170,12 @@ def handle_file_upload(request):
 
                 # Определение типа файла (изображение, видео или обычный файл)
                 mime_type, _ = mimetypes.guess_type(uploaded_file.name)
-                if mime_type and mime_type.startswith('image'):
-                    file_type = 'image'
-                elif mime_type and mime_type.startswith('video'):
-                    file_type = 'video'
-                elif mime_type and mime_type.startswith('audio'):
-                    file_type = 'audio'
-                else:
-                    file_type = 'file'
+                file_type = (
+                    'image' if mime_type and mime_type.startswith('image') else
+                    'video' if mime_type and mime_type.startswith('video') else
+                    'audio' if mime_type and mime_type.startswith('audio') else
+                    'file'
+                )
                 
                 # Создание записи в базе данных
                 file_record = File.objects.create(
@@ -153,9 +187,22 @@ def handle_file_upload(request):
                     mime_type=mime_type
                 )
 
-                # Логирование создания записи
-                logger.info(f"Файл сохранен в базе данных: уникальный ключ: {unique_key}, тип файла: {file_type}, MIME-тип: {mime_type}")
+                # Генерация QR-кода и его сохранение
+                qr_code_dir = f"{settings.MEDIA_ROOT}/qr_codes/"
+                if not os.path.exists(qr_code_dir):
+                    os.makedirs(qr_code_dir)
 
+                download_link = request.build_absolute_uri(reverse('file_view', args=[unique_key]))
+                qr_code_img = generate_custom_qr_code(download_link)
+                avatar_img = Image.open(f'{settings.MEDIA_ROOT}/logo/base.png')
+                qr_size = avatar_img.width // 3
+                qr_code_img = qr_code_img.resize((qr_size, qr_size))
+                avatar_img.paste(qr_code_img, (avatar_img.width - qr_size, avatar_img.height - qr_size))
+
+                qr_code_image_path = f"{qr_code_dir}avatar_with_custom_qr_{unique_key}.jpg"
+                avatar_img.save(qr_code_image_path)
+
+                # Установка срока жизни файла
                 if expiry_duration == 'one_time':
                     expiration_str = 'Одноразовая ссылка'
                 else:
@@ -163,28 +210,22 @@ def handle_file_upload(request):
                         expiry_duration, _ = str(expiry_duration).split('_')
                         expiry_duration = int(expiry_duration)
                         file_record.set_expiry(expiry_duration)
-                        logger.info(f"Срок жизни файла установлен: {expiry_duration} дней")
-                        
-                        # Определяем правильное склонение
-                        if expiry_duration == 1:
-                            expiration_str = "1 день"
-                        elif 2 <= expiry_duration <= 4:
-                            expiration_str = f"{expiry_duration} дня"
-                        else:
-                            expiration_str = f"{expiry_duration} дней"
+
+                        expiration_str = (
+                            "1 день" if expiry_duration == 1 else
+                            f"{expiry_duration} дня" if 2 <= expiry_duration <= 4 else
+                            f"{expiry_duration} дней"
+                        )
                     except ValueError:
-                        expiration_str = 'не задан'  # Установите значение по умолчанию при ошибке
-                        logger.warning("Ошибка: Неверный формат срока жизни файла")
+                        expiration_str = 'не задан'
 
                 # Сохранение информации в сессии
                 request.session['upload_success'] = {
                     'unique_key': unique_key,
-                    'link': request.build_absolute_uri(reverse('file_view', args=[unique_key])),
-                    'file_expiration': expiration_str
+                    'link': download_link,
+                    'file_expiration': expiration_str,
+                    'qr_code_image_path': qr_code_image_path,
                 }
-
-                # Логирование успешной загрузки
-                logger.info(f"Файл успешно загружен. Уникальный ключ: {unique_key}, срок жизни: {expiration_str}")
 
                 # Перенаправление на страницу успешной загрузки
                 return HttpResponseRedirect(reverse('upload_success'))
@@ -198,6 +239,7 @@ def handle_file_upload(request):
 
     logger.error("Ошибка: недопустимый метод")
     return JsonResponse({'error': 'Invalid method'}, status=405)
+
 
 
 def home(request, error_message=None):
@@ -354,20 +396,33 @@ def link_opened(file_record):
     if not file_record.is_opened:
         file_record.mark_as_opened()  # Обновляем статус открытия
 
-# Представление для успешной загрузки
 def upload_success_view(request):
-    upload_success = request.session.get('upload_success')
+    try:
+        upload_success = request.session.get('upload_success')
+
+        if not upload_success:
+            return HttpResponseRedirect(reverse('home'))
+
+        qr_code_image_path = upload_success.get('qr_code_image_path')
+
+        qr_code_url = None
+        if qr_code_image_path:
+            qr_code_url = f"{request.build_absolute_uri('/media/qr_codes/')}{os.path.basename(qr_code_image_path)}"
+            
+            # Планируем удаление QR-кода через 5 минут
+            delete_qr_code_file.apply_async((qr_code_image_path,), eta=now() + timedelta(minutes=5))
+
+        return render(request, 'upload_success.html', {
+            'unique_key': upload_success['unique_key'],
+            'link': upload_success['link'],
+            'file_expiration': upload_success['file_expiration'],
+            'qr_code_url': qr_code_url
+        })
+
+    except Exception as e:
+        logger.error(f"Ошибка в представлении успешной загрузки: {e}")
+        return JsonResponse({'error': 'Произошла ошибка'}, status=500)
     
-    # Проверка на наличие информации о загрузке
-    if not upload_success:
-        return HttpResponseRedirect(reverse('home'))
-
-    return render(request, 'upload_success.html', {
-        'unique_key': upload_success['unique_key'],
-        'link': upload_success['link'],
-        'file_expiration': upload_success['file_expiration']
-    })
-
 def decrypt_file(encrypted_data, key):
     try:
         fernet = Fernet(key.encode())  # Создание объекта Fernet с ключом

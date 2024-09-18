@@ -1,294 +1,286 @@
 :root {
-    --background-color: #121212; /* Основной фон */
-    --container-background: #1e1e1e; /* Фон контейнера */
-    --text-color: #ffffff; /* Цвет текста */
-    --header-color: #a33131; /* Цвет заголовка */
-    --subheader-color: #c296ff; /* Цвет подзаголовка */
-    --paragraph-color: #e0e0e0; /* Цвет параграфа */
-    --button-background: #4707a1; /* Фон кнопки */
-    --button-hover: #4f09b1; /* Цвет кнопки при наведении */
-    --alert-success: #4caf50; /* Цвет успешных сообщений */
-    --alert-danger: #f44336; /* Цвет ошибочных сообщений */
-    --input-background: #282828; /* Фон полей ввода */
-    --border-color: #6200ea; /* Цвет границ */
-    --notice-border-color: #6200ea; /* Цвет границы для уведомлений */
+    --background-color: #121212;
+    --container-background: #1e1e1e;
+    --text-color: #ffffff;
+    --header-color: #a33131;
+    --subheader-color: #c296ff;
+    --paragraph-color: #e0e0e0;
+    --button-background: #4707a1;
+    --button-hover: #4f09b1;
+    --alert-success: #4caf50;
+    --alert-danger: #f44336;
+    --input-background: #282828;
+    --border-color: #6200ea;
+    --notice-border-color: #6200ea
 }
 
-/* Основные стили */
 body {
     background-color: var(--background-color);
     color: var(--text-color);
     font-family: "Chocolate Classical Sans", sans-serif;
     margin: 0;
-    padding: 0;
+    padding: 0
 }
 
 .wrapper {
     display: flex;
     justify-content: center;
     padding: 20px;
-    margin: 0 auto; /* Центрирование контейнера */
+    margin: 0 auto
 }
-/* Контейнер для форм */
+
+#banner,
+.btn {
+    margin-top: 20px
+}
+
 .container {
     max-width: 800px;
     padding: 20px;
     background-color: var(--container-background);
     border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, .5)
 }
 
 .container h1 {
-    font-size: 26px; /* Увеличен размер шрифта */
+    font-size: 26px;
     margin-bottom: 15px;
-    color: var(--subheader-color); /* Цвет заголовка */
+    color: var(--subheader-color)
 }
 
 .container h2 {
     font-size: 24px;
     margin-top: 10px;
-    color: var(--header-color);
+    color: var(--header-color)
 }
 
-/* Параграфы */
 .container p {
-    font-size: 16px; /* Увеличен размер шрифта */
-    line-height: 1.5; /* Увеличен межстрочный интервал */
-    margin: 10px 0; /* Отступы сверху и снизу */
-    color: var(--paragraph-color); /* Светлый цвет текста */
+    font-size: 16px;
+    line-height: 1.5;
+    margin: 10px 0;
+    color: var(--paragraph-color)
 }
 
-/* Стили кнопок */
+.alert-danger,
+.alert-success,
+.btn {
+    color: var(--text-color)
+}
+
 .btn {
     background-color: var(--button-background);
     border: none;
-    color: var(--text-color);
-    padding: 12px 24px; /* Увеличены отступы */
+    padding: 12px 24px;
     border-radius: 4px;
     cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.2s ease;
+    transition: background-color .3s, transform .2s;
     display: inline-block;
-    margin-top: 20px; /* Увеличенный отступ сверху */
     text-align: center;
-    width: 100%; /* Полная ширина */
+    width: 100%;
     text-decoration: none;
-    box-sizing: border-box; /* Убедитесь, что отступы включены в ширину */
+    box-sizing: border-box
+}
+
+.alert,
+.status-message,
+label {
+    margin-top: 10px
 }
 
 .btn:hover {
     background-color: var(--button-hover);
-    transform: scale(1.02); /* Увеличение кнопки при наведении */
+    transform: scale(1.02)
 }
 
-/* Стиль для статуса сообщений */
-.status-message {
-    margin-top: 10px;
-}
-
-/* Стиль для предупреждений */
 .alert {
     padding: 15px;
-    margin-top: 10px;
-    border-radius: 4px;
+    border-radius: 4px
 }
 
-/* Стили для успешных и ошибочных сообщений */
 .alert-success {
-    background-color: var(--alert-success);
-    color: var(--text-color);
+    background-color: var(--alert-success)
 }
 
 .alert-danger {
-    background-color: var(--alert-danger);
-    color: var(--text-color);
+    background-color: var(--alert-danger)
 }
 
-/* Стили для ввода файлов и текста */
-input[type="file"],
-input[type="text"],
-input[type="password"],
-.select-lifetime {
+.select-lifetime,
+input[type=file],
+input[type=password],
+input[type=text] {
     background-color: var(--input-background);
     color: var(--text-color);
     padding: 10px;
     border: 1px solid var(--border-color);
     border-radius: 4px;
     margin-top: 10px;
-    width: 100%; /* Полная ширина */
-    box-sizing: border-box; /* Включаем padding в общую ширину */
+    width: 100%;
+    box-sizing: border-box
 }
 
-input[type="file"]:focus,
-input[type="text"]:focus,
-input[type="password"]:focus,
-.select-lifetime:focus {
-    border-color: var(--button-hover); /* Цвет границы при фокусе */
-    outline: none; /* Убираем стандартное обрамление */
+.select-lifetime:focus,
+input[type=file]:focus,
+input[type=password]:focus,
+input[type=text]:focus {
+    border-color: var(--button-hover);
+    outline: 0
 }
 
-/* Стили для меток */
 label {
-    margin-top: 10px;
-    display: block;
+    display: block
 }
 
-/* Для форм в целом */
+#banner,
 form {
-    display: flex;
-    flex-direction: column;
+    display: flex
 }
 
-/* Устранение наложений между контейнерами */
+form {
+    flex-direction: column
+}
+
 .mt-5 {
-    margin-top: 40px;
+    margin-top: 40px
 }
 
-/* Стиль для уведомлений */
 .notice {
-    color: #333333; /* Темный текст */
+    color: #333;
     padding: 10px;
     border-radius: 4px;
     margin-top: 10px;
     font-size: 14px;
     line-height: 1.4;
-    border: 2px solid var(--notice-border-color); /* Темная граница для выделения */
+    border: 2px solid var(--notice-border-color)
 }
 
-/* Стиль для фокуса */
+.ad-block,
+.contact-block {
+    width: 25%;
+    background-color: var(--container-background);
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, .5);
+    padding: 20px
+}
+
 .btn:focus,
-input:focus,
-.select-lifetime:focus {
-    outline: 2px solid var(--button-hover); /* Четкое обрамление */
-    outline-offset: 2px; /* Отступ для обрамления */
+.select-lifetime:focus,
+input:focus {
+    outline: 2px solid var(--button-hover);
+    outline-offset: 2px
 }
 
 .ad-block {
-    width: 25%; /* Ширина блока рекламы */
-    background-color: var(--container-background);
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-    margin-right: 20px; /* Отступ справа */
+    margin-right: 20px
 }
 
 .contact-block {
-    width: 25%; /* Ширина блока контактов */
-    background-color: var(--container-background);
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-    margin-left: 20px; /* Отступ слева */
+    margin-left: 20px
 }
 
-/* Стили для заголовков блоков рекламы и контактов */
-.ad-block h2, .contact-block h2 {
+.ad-block h2,
+.contact-block h2 {
     font-size: 24px;
     margin-bottom: 15px;
-    color: var(--header-color);
+    color: var(--header-color)
 }
 
 .main-container {
     background-color: var(--background-color);
     box-shadow: none;
-    max-width: 1200px;
+    max-width: 1200px
 }
 
 ul.list-unstyled li {
-    margin-bottom: 10px; /* Отступ между элементами списка */
+    margin-bottom: 10px
 }
 
 ul.list-unstyled li a {
-    text-decoration: none; /* Убираем подчеркивание ссылок */
-    color: #007bff; /* Цвет ссылок (можно настроить под дизайн) */
-    font-size: 18px; /* Размер текста */
+    text-decoration: none;
+    color: #007bff;
+    font-size: 18px
 }
 
 ul.list-unstyled li a:hover {
-    color: #0056b3; /* Цвет ссылки при наведении */
+    color: #0056b3
 }
 
 ul.list-unstyled li i {
-    margin-right: 8px; /* Отступ между иконкой и текстом */
-    font-size: 20px; /* Размер иконки */
+    margin-right: 8px;
+    font-size: 20px
 }
-
 
 #banner {
-    display: flex;
     flex-direction: column;
-    gap: 20px; /* Промежуток между баннерами */
-    margin-top: 20px;
+    gap: 20px
 }
 
-@media (min-width: 992px) {
+@media (min-width:992px) {
     #banner {
-        flex-direction: row; /* Горизонтальная ориентация на больших экранах */
+        flex-direction: row
     }
 }
 
 #banner img {
     width: 100%;
     height: auto;
-    object-fit: cover; /* Чтобы изображение адаптировалось под контейнер */
+    object-fit: cover
 }
 
 .alert {
-    border: none;
+    border: none
 }
 
-/* Контейнер для центрирования */
 .container-wrapper {
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    padding: 20px;
+    padding: 20px
 }
 
-/* Контейнер для контента */
 .container-base {
     max-width: 650px;
     width: 100%;
     padding: 20px;
     background-color: var(--container-background);
     border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, .1)
 }
 
 .container-base h2 {
-    color: #a33131;
+    color: #a33131
 }
-/* Картинка или видео */
+
 .file-preview {
     max-width: 100%;
     height: auto;
-    margin: 20px 0;
+    margin: 20px 0
 }
 
-/* Адаптивность */
-@media (max-width: 600px) {
+@media (max-width:600px) {
     .container-base {
-        padding: 15px;
+        padding: 15px
     }
-    
-    .container-wrapper{
-        padding: 10px;
+
+    .container-wrapper {
+        padding: 10px
     }
 }
 
 .file-preview-audio {
     display: block;
-    width: 100%; /* Аудиоплеер будет занимать всю ширину контейнера */
-    max-width: 600px; /* Максимальная ширина для плеера */
-    margin: 20px auto; /* Добавим отступы сверху и снизу, а также выравнивание по центру */
-    border-radius: 5px; /* Скругление углов */
-    background-color: #f7f7f7; /* Фон для аудиоплеера */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Тень для более стильного вида */
+    width: 100%;
+    max-width: 600px;
+    margin: 20px auto;
+    border-radius: 5px;
+    background-color: #f7f7f7;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, .1)
 }
 
 .loading-indicator {
-    justify-content: center; /* Центрируем по вертикали */
-    align-items: center; /* Центрируем по горизонтали */
+    justify-content: center;
+    align-items: center
 }
 
 .loader {
@@ -296,17 +288,21 @@ ul.list-unstyled li i {
     border-radius: 20px;
     color: var(--border-color);
     border: 2px solid;
-    position: relative;
-  }
-  .loader::before {
+    position: relative
+}
+
+.loader::before {
     content: "";
     position: absolute;
     margin: 2px;
     inset: 0 100% 0 0;
     border-radius: inherit;
     background: currentColor;
-    animation: l6 2s infinite;
-  }
-  @keyframes l6 {
-      100% {inset:0}
-  }
+    animation: 2s infinite l6
+}
+
+@keyframes l6 {
+    100% {
+        inset: 0
+    }
+}

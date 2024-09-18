@@ -9,6 +9,14 @@ import mimetypes
 import os
 from asgiref.sync import sync_to_async
 
+from telegram import InputFile
+
+from PIL import Image
+import qrcode
+from qrcode.image.styledpil import StyledPilImage
+from qrcode.image.styles.moduledrawers import RoundedModuleDrawer
+from qrcode.image.styles.colormasks import RadialGradiantColorMask
+
 # Настройка логирования
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -22,9 +30,47 @@ WAITING_FOR_IMAGE_TEXT = 'waiting_for_image_text'
 #LINK
 URL = os.getenv('URL')
 if settings.DEBUG == True:
-    LOCAL_URL = 'http://109.120.152.24'
+    LOCAL_URL = 'https://anonloader.io'
 else:
     LOCAL_URL = URL
+
+
+def generate_custom_qr_code(link, size=300, logo_path=None):
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_H,  # Максимальная коррекция для лого
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(link)
+    qr.make(fit=True)
+
+    # Генерация QR-кода с круглыми модулями и градиентной заливкой
+    qr_img = qr.make_image(
+        image_factory=StyledPilImage,
+        module_drawer=RoundedModuleDrawer(),
+        color_mask=RadialGradiantColorMask(back_color=(255, 255, 255), center_color=(0, 0, 0), edge_color=(100, 100, 255))
+    )
+
+    qr_img = qr_img.convert("RGB")
+    qr_img = qr_img.resize((size, size))
+
+    # Добавление логотипа в центр QR-кода, если есть
+    if logo_path:
+        logo = Image.open(logo_path)
+        logo_size = size // 5  # Лого будет занимать 1/5 QR-кода
+        logo = logo.resize((logo_size, logo_size))
+
+        # Определение позиции для вставки логотипа в центр QR-кода
+        pos = ((qr_img.width - logo.width) // 2, (qr_img.height - logo.height) // 2)
+        qr_img.paste(logo, pos, logo)
+
+    return qr_img
+
+
+
+
+
 
 
 async def generate_link(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -235,7 +281,7 @@ async def link_lifetime_selected(update: Update, context: ContextTypes.DEFAULT_T
     }
     
     loading_message = await query.message.edit_text("Загрузка файла на сервер...")
-
+    
     try:
         response = requests.post(f'{URL}/upload/', data=data, files=files)
 
@@ -250,27 +296,51 @@ async def link_lifetime_selected(update: Update, context: ContextTypes.DEFAULT_T
                 return
             
             logger.info(f"Файл успешно загружен: {file_url} для пользователя {update.effective_user.id}")
-            
+            loading_message = await query.message.edit_text("Файл был загружен на сервер...")
             if lifetime != 'one_time':
                 download_count = 'Неограничено'
             else:
                 download_count = '1'
 
             user_id = update.effective_user.id
+            download_link = f"{LOCAL_URL}/file/{unique_key}"  # Ссылка для скачивания
+            loading_message = await query.message.edit_text("Генерация QR-кода...")
+            
+            avatar_path = '/home/app/web/anon_bot_manager/telegram_bot_launcher/handlers/images/base.png'  # Путь к аватарке
+            qr_code_img = generate_custom_qr_code(download_link)
+            avatar_img = Image.open(avatar_path)
+            qr_size = avatar_img.width // 3  # Размер QR-кода относительно аватарки
+            qr_code_img = qr_code_img.resize((qr_size, qr_size))
+            avatar_img.paste(qr_code_img, (avatar_img.width - qr_size, avatar_img.height - qr_size))
+            avatar_img.save("avatar_with_custom_qr.jpg")
+            loading_message = await query.message.edit_text("Проверяем, что все в порядке...")
+            
+            if download_count == 1:
+                defender_message = '🛡️ <i>Ваша ссылка защищена и удалится после первого открытия.</i>'
+            else:
+                defender_message = "🛡️ <i>Ваша ссылка защищена.</i>"
             keyboard = [
-                [InlineKeyboardButton("anonloader.io", url="https://anonloader.io")],
+                [InlineKeyboardButton("🔗 Скачать файл", url=f"{LOCAL_URL}/file/{unique_key}")],
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
-
-            await loading_message.edit_text(
-                f"Ваш файл был успешно загружен на сервер.\n"
-                f"Ссылка на ваш файл: {LOCAL_URL}/file/{unique_key}\n"
-                f"Ключ доступа к файлу: <code>{unique_key}</code>\n"
-                f"Срок жизни файла: {lifetime_display}\n"
-                f"Количество доступных открытий ссылки: {download_count}",
-                parse_mode='html',
-                reply_markup=reply_markup
-            )
+            
+            with open("avatar_with_custom_qr.jpg", "rb") as qr_image_file:
+                await loading_message.delete()
+                await context.bot.send_photo(
+                    chat_id=user_id,
+                    photo=InputFile(qr_image_file),
+                    caption=(
+                        f"✅ <b>Ваш файл был успешно загружен на сервер!</b>\n\n"
+                        f"🔗 <b>Защищенная ссылка</b> для загрузки файла: <a href='{LOCAL_URL}/file/{unique_key}'>Загрузить файл</a>\n"
+                        f"🔑 <b>Ключ доступа:</b> <code>{unique_key}</code>\n"
+                        f"⏳ <b>Срок жизни файла:</b> {lifetime_display}\n"
+                        f"🔒 <b>Количество доступных открытий:</b> {download_count}\n\n"
+                        f"{defender_message}"
+                    ),
+                    parse_mode='html',
+                    reply_markup=reply_markup
+                )
+            os.remove("avatar_with_custom_qr.jpg")
             await update_generated_links(user_id=user_id)
             context.user_data['state'] = None
         else:

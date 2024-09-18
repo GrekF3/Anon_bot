@@ -369,7 +369,7 @@ async def take_ticket_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
             keyboard = [
                 [
                     InlineKeyboardButton("Закрыть тикет", callback_data=f"close_{ticket_id}"),
-                    InlineKeyboardButton("Чат с пользователем", url=f"http://127.0.0.1:8000/supports/tickets/chat/{ticket_id}/")
+                    InlineKeyboardButton("Чат с пользователем", url=f"https://anonloader.io/supports/tickets/chat/{ticket_id}/")
                 ]
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)

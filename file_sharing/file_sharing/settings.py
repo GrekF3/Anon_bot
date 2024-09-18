@@ -27,9 +27,12 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
-BASE_URL = '109.120.152.24'
-API_URL = 'http://109.120.152.24/'
+if DEBUG:
+    ALLOWED_HOSTS = ['*']
+else:
+    ALLOWED_HOSTS = ['109.120.152.38','anonloader.io', 'www.anonloader.io', "web:8000","web"]
+BASE_URL = 'anonloader.io'
+API_URL = 'https://anonloader.io/'
 ANON_SUPPORT_TOKEN = os.getenv('ANON_SUPPORT_TOKEN')
 ANON_TOKEN = os.getenv('ANON_TOKEN')
 
@@ -84,7 +87,7 @@ CHANNEL_LAYERS = {
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     ############## Убрать на PROD ################
-    # 'whitenoise.middleware.WhiteNoiseMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     ##############################################
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -95,6 +98,8 @@ MIDDLEWARE = [
     'file_sharing.middleware.RequestLogMiddleware',
 ]
 
+
+CSRF_TRUSTED_ORIGINS=["https://anonloader.io", "https://www.anonloader.io"]
 ROOT_URLCONF = 'file_sharing.urls'
 
 TEMPLATES = [
