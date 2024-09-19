@@ -79,7 +79,7 @@
                             "Одноразовая ссылка" - это когда файл может быть открыт и скачан только один раз.
                         </p>
     
-                        <button type="submit" class="btn btn-success w-100 mt-3">Загрузить файл</button>
+                        <button type="submit" class="btn btn-success w-100 mt-3" disabled>Загрузить файл</button>
                     </form>
                     <div id="loadingIndicator" class="loading-indicator" style="display: none;">
                         <p>Отправка файла, пожалуйста, подождите...</p>
@@ -115,64 +115,7 @@
 
         </div>
     </div>
-    <script>
-        document.getElementById('uploadForm').onsubmit = function() {
-            document.getElementById('loadingIndicator').style.display = 'block';
-            document.querySelector('button[type="submit"]').disabled = true;
-        };
-
-        document.addEventListener("DOMContentLoaded", function () {
-            const selectLifetime = document.getElementById("file_lifetime");
-            const oneTimeNotice = document.getElementById("oneTimeNotice");
-
-            function toggleOneTimeNotice() {
-                if (selectLifetime.value === "one_time") {
-                    oneTimeNotice.style.display = "block";
-                } else {
-                    oneTimeNotice.style.display = "none";
-                }
-            }
-
-            selectLifetime.addEventListener("change", toggleOneTimeNotice);
-            toggleOneTimeNotice();
-
-            const originalTitle = document.title = "AnonLoader";
-            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-            const changeInterval = 100;
-            const transitionDuration = 2000;
-            const endDelay = 2000;
-
-            function generateRandomCharacter() {
-                return characters.charAt(Math.floor(Math.random() * characters.length));
-            }
-
-            function animateTitleToRandom(index = 0) {
-                if (index < originalTitle.length) {
-                    document.title = document.title.substring(0, index) + generateRandomCharacter() + originalTitle.substring(index + 1);
-                    setTimeout(() => animateTitleToRandom(index + 1), changeInterval);
-                } else {
-                    animateTitleToOriginal(originalTitle.length - 1);
-                }
-            }
-
-            function animateTitleToOriginal(index) {
-                if (index >= 0) {
-                    document.title = document.title.substring(0, index) + originalTitle.charAt(index) + document.title.substring(index + 1);
-                    setTimeout(() => animateTitleToOriginal(index - 1), changeInterval);
-                } else {
-                    setTimeout(startCycle, transitionDuration + endDelay);
-                }
-            }
-
-            function startCycle() {
-                setTimeout(() => {
-                    animateTitleToRandom();
-                }, transitionDuration);
-            }
-
-            startCycle();
-        });
-    </script>
+    <script src="{% static 'js/main.js' %}"></script>
 </body>
 
 </html>

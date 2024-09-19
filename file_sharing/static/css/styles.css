@@ -306,3 +306,10 @@ ul.list-unstyled li i {
         inset: 0
     }
 }
+
+.btn:disabled {
+    background-color: #555; /* Приглушенный цвет для неактивной кнопки */
+    cursor: not-allowed; /* Показывает, что кнопка неактивна */
+    opacity: 0.6; /* Снижение прозрачности */
+    transform: none; /* Убираем анимацию при наведении */
+}

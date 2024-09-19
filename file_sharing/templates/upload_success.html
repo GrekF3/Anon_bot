@@ -33,52 +33,5 @@
         <img src="{{ qr_code_url }}" alt="QR Code" class="qr-code">
     </div>
 </body>
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const originalTitle = document.title; // Сохранение оригинального заголовка
-        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        const changeInterval = 100; // Интервал между изменениями символов в миллисекундах
-        const transitionDuration = 2000; // Длительность ожидания перед изменением заголовка
-        const endDelay = 2000; // Дополнительная задержка перед повторением цикла
-    
-        function generateRandomCharacter() {
-            return characters.charAt(Math.floor(Math.random() * characters.length));
-        }
-    
-        function animateTitleToRandom(index = 0) {
-            if (index < originalTitle.length) {
-                // Меняем одну букву заголовка на случайный символ и оставляем остальные символы
-                document.title = document.title.substring(0, index) + generateRandomCharacter() + originalTitle.substring(index + 1);
-                setTimeout(() => animateTitleToRandom(index + 1), changeInterval);
-            } else {
-                // Начинаем восстанавливать заголовок в обратном направлении
-                animateTitleToOriginal(originalTitle.length - 1);
-            }
-        }
-    
-        function animateTitleToOriginal(index) {
-            if (index >= 0) {
-                // Восстанавливаем одну букву заголовка с конца
-                document.title = document.title.substring(0, index) + originalTitle.charAt(index) + document.title.substring(index + 1);
-                setTimeout(() => animateTitleToOriginal(index - 1), changeInterval);
-            } else {
-                // Ожидание перед следующим циклом с дополнительной задержкой
-                setTimeout(startCycle, transitionDuration + endDelay);
-            }
-        }
-    
-        function startCycle() {
-            // Сначала держим оригинальный заголовок в течение 2 секунд
-            setTimeout(() => {
-                // Затем запускаем анимацию изменения заголовка
-                animateTitleToRandom();
-            }, transitionDuration);
-        }
-    
-        // Запуск первого цикла
-        startCycle();
-    });
-    
-    
-</script>
+<script src="{% static 'js/main.js' %}"></script>
 </html>

@@ -72,53 +72,5 @@
         </div>
     </div>
 </body>
-<script>
-    // Показать индикатор загрузки, когда начинается загрузка страницы
-    window.addEventListener('load', function() {
-        document.getElementById('loadingIndicator').style.display = 'none'; // Скрыть индикатор при завершении загрузки
-    });
-
-    // Скрыть индикатор, когда пользователь покидает страницу
-    window.addEventListener('beforeunload', function() {
-        document.getElementById('loadingIndicator').style.display = 'block'; // Показать индикатор при уходе со страницы
-    });
-    // Ваш JavaScript код остается без изменений
-    document.addEventListener("DOMContentLoaded", function() {
-        const originalTitle = document.title;
-        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        const changeInterval = 100;
-        const transitionDuration = 2000;
-        const endDelay = 2000;
-
-        function generateRandomCharacter() {
-            return characters.charAt(Math.floor(Math.random() * characters.length));
-        }
-
-        function animateTitleToRandom(index = 0) {
-            if (index < originalTitle.length) {
-                document.title = document.title.substring(0, index) + generateRandomCharacter() + originalTitle.substring(index + 1);
-                setTimeout(() => animateTitleToRandom(index + 1), changeInterval);
-            } else {
-                animateTitleToOriginal(originalTitle.length - 1);
-            }
-        }
-
-        function animateTitleToOriginal(index) {
-            if (index >= 0) {
-                document.title = document.title.substring(0, index) + originalTitle.charAt(index) + document.title.substring(index + 1);
-                setTimeout(() => animateTitleToOriginal(index - 1), changeInterval);
-            } else {
-                setTimeout(startCycle, transitionDuration + endDelay);
-            }
-        }
-
-        function startCycle() {
-            setTimeout(() => {
-                animateTitleToRandom();
-            }, transitionDuration);
-        }
-
-        startCycle();
-    });
-</script>
+<script src="{% static 'js/main.js' %}"></script>
 </html>
