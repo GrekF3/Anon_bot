@@ -194,7 +194,7 @@ def handle_file_upload(request):
 
                 download_link = request.build_absolute_uri(reverse('file_view', args=[unique_key]))
                 qr_code_img = generate_custom_qr_code(download_link)
-                avatar_img = Image.open(f'{settings.MEDIA_ROOT}/logo/base.png')
+                avatar_img = Image.open(f'/home/app/web/media/logo/base.png')
                 qr_size = avatar_img.width // 3
                 qr_code_img = qr_code_img.resize((qr_size, qr_size))
                 avatar_img.paste(qr_code_img, (avatar_img.width - qr_size, avatar_img.height - qr_size))
@@ -232,7 +232,7 @@ def handle_file_upload(request):
 
             except Exception as e:
                 logger.error(f"Ошибка при обработке файла: {str(e)}")
-                return JsonResponse({'error': str(e)}, status=500)
+                return JsonResponse({'error'}, status=500)
         
         logger.error("Ошибка: отсутствуют обязательные поля")
         return JsonResponse({'error': 'Missing required fields'}, status=400)
@@ -492,6 +492,12 @@ def robots_txt(request):
         "Disallow: /upload/",
         "Disallow: /file/",
         "Disallow: /download/",
-        "Allow: /",  # Разрешить главную страницу и другие открытые страницы
+        "",
+        "User-agent: facebookexternalhit",
+        "Allow: /",
+        "User-agent: TelegramBot",
+        "Allow: /",
+        "User-agent: Twitterbot",
+        "Allow: /",
     ]
     return HttpResponse("\n".join(lines), content_type="text/plain")

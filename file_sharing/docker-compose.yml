@@ -26,6 +26,7 @@ services:
       - media_volume:/home/app/web/media
       - ./certbot/conf:/etc/letsencrypt
       - ./certbot/www:/var/www/certbot
+      - ./nginx/logs:/var/log/nginx
     ports:
       - "80:80"
       - "443:443"
@@ -58,8 +59,10 @@ services:
     depends_on:
       - db
       - web
+      - telegram-bot-api
     volumes:
       - .:/app
+      - telegram-bot-api-data:/var/lib/telegram-bot-api 
     restart: always
     environment:
       - ANON_BOT_KEY=${ANON_TOKEN}
@@ -102,6 +105,19 @@ services:
       - "5555:5555"
     restart: always
 
+  telegram-bot-api:
+    image: aiogram/telegram-bot-api:latest
+    environment:
+      TELEGRAM_API_ID: "2110117" 
+      TELEGRAM_API_HASH: "3716da0d0d88a9317845ab7e20daf2a0"
+      TELEGRAM_LOCAL: "1"
+      TELEGRAM_MAX_CONNECTIONS: "1000"  # Установите в зависимости от ожидаемой нагрузки
+      TELEGRAM_VERBOSITY: "1"  # Для повышения уровня логирования
+    volumes:
+      - telegram-bot-api-data:/var/lib/telegram-bot-api
+    ports:
+      - "8081:8081"  # Порт для доступа к Bot API
+
   celery_beat:
     build: .
     command: celery -A file_sharing beat -l info
@@ -118,3 +134,4 @@ volumes:
   static_volume:
   postgres_data:
   nginx_logs:
+  telegram-bot-api-data:

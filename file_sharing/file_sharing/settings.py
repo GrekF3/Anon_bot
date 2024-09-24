@@ -25,16 +25,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-if DEBUG:
-    ALLOWED_HOSTS = ['*']
-else:
-    ALLOWED_HOSTS = ['109.120.152.38','anonloader.io', 'www.anonloader.io', "web:8000","web"]
+ALLOWED_HOSTS = ['anonloader.io', 'www.anonloader.io', '109.120.152.38', 'web', 'web:8000']
 BASE_URL = 'anonloader.io'
 API_URL = 'https://anonloader.io/'
 ANON_SUPPORT_TOKEN = os.getenv('ANON_SUPPORT_TOKEN')
 ANON_TOKEN = os.getenv('ANON_TOKEN')
+
 
 LOGGING = {
     'version': 1,
@@ -87,7 +85,7 @@ CHANNEL_LAYERS = {
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     ############## Убрать на PROD ################
-    'whitenoise.middleware.WhiteNoiseMiddleware',
+    # 'whitenoise.middleware.WhiteNoiseMiddleware',
     ##############################################
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',

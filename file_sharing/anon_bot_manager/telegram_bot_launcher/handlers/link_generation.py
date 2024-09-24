@@ -9,8 +9,7 @@ import mimetypes
 import os
 from asgiref.sync import sync_to_async
 
-from telegram import InputFile, File
-from telegram.error import TelegramError
+from telegram import InputFile
 
 from PIL import Image
 import qrcode
@@ -67,6 +66,10 @@ def generate_custom_qr_code(link, size=300, logo_path=None):
         qr_img.paste(logo, pos, logo)
 
     return qr_img
+
+
+
+
 
 
 
@@ -239,12 +242,16 @@ async def link_lifetime_selected(update: Update, context: ContextTypes.DEFAULT_T
     loading_message = await query.message.edit_text("Загрузка файла на сервер...")
     
     try:
-        response = requests.post(f'{URL}/upload/', data=data, files=files)
+        logger.info(f"Отправка файла на сервер для пользователя {update.effective_user.id}...")
+        response = requests.post("http://web:8000/upload/", data=data, files=files, allow_redirects=True)
+        logger.info(f"Заголовки ответа: {response.headers}")
 
         if response.status_code == 200:
             response_data = response.json()
             file_url = response_data.get('file_url')
             unique_key = response_data.get('unique_key')
+
+            logger.info(f"Ответ сервера: {response_data}")
 
             if file_url is None:
                 logger.error("Ошибка: сервер не вернул ссылку на файл.")
@@ -253,33 +260,40 @@ async def link_lifetime_selected(update: Update, context: ContextTypes.DEFAULT_T
             
             logger.info(f"Файл успешно загружен: {file_url} для пользователя {update.effective_user.id}")
             loading_message = await query.message.edit_text("Файл был загружен на сервер...")
+
             if lifetime != 'one_time':
                 download_count = 'Неограничено'
             else:
                 download_count = '1'
 
             user_id = update.effective_user.id
-            download_link = f"{LOCAL_URL}/file/{unique_key}"  # Ссылка для скачивания
-            loading_message = await query.message.edit_text("Генерация QR-кода...")
-            
             avatar_path = '/home/app/web/anon_bot_manager/telegram_bot_launcher/handlers/images/base.png'  # Путь к аватарке
+            download_link = f"{LOCAL_URL}/file/{unique_key}"  # Ссылка для скачивания
+
+            logger.info("Начинаем генерировать QR-код...")
+            loading_message = await query.message.edit_text("Генерация QR-кода...")
             qr_code_img = generate_custom_qr_code(download_link)
+            
+            logger.info("QR-код сгенерирован, обрабатываем изображение с аватаркой...")
             avatar_img = Image.open(avatar_path)
             qr_size = avatar_img.width // 3  # Размер QR-кода относительно аватарки
             qr_code_img = qr_code_img.resize((qr_size, qr_size))
             avatar_img.paste(qr_code_img, (avatar_img.width - qr_size, avatar_img.height - qr_size))
             avatar_img.save("avatar_with_custom_qr.jpg")
+            
             loading_message = await query.message.edit_text("Проверяем, что все в порядке...")
             
-            if int(download_count) == 1:
+            if download_count == 1:
                 defender_message = '🛡️ <i>Ваша ссылка защищена и удалится после первого открытия.</i>'
             else:
                 defender_message = "🛡️ <i>Ваша ссылка защищена.</i>"
+            
             keyboard = [
                 [InlineKeyboardButton("🔗 Скачать файл", url=f"{LOCAL_URL}/file/{unique_key}")],
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
-            
+
+            logger.info("Отправляем QR-код пользователю...")
             with open("avatar_with_custom_qr.jpg", "rb") as qr_image_file:
                 await loading_message.delete()
                 await context.bot.send_photo(
@@ -296,6 +310,7 @@ async def link_lifetime_selected(update: Update, context: ContextTypes.DEFAULT_T
                     parse_mode='html',
                     reply_markup=reply_markup
                 )
+            
             os.remove("avatar_with_custom_qr.jpg")
             await update_generated_links(user_id=user_id)
             context.user_data['state'] = None

@@ -12,6 +12,7 @@ from anon_bot_manager.telegram_bot_launcher.handlers.support import support_bot
 from anon_bot_manager.telegram_bot_launcher.handlers.privacy_policy import accept_policy
 import os
 
+
 # Установка Django настроек
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'file_sharing.settings')
 django.setup()
@@ -70,4 +71,6 @@ def main() -> None:
         application.run_polling(allowed_updates=Update.ALL_TYPES)
     except Exception as e:
         logger.exception("Критическая ошибка при запуске бота: %s", e)
+
+
 
