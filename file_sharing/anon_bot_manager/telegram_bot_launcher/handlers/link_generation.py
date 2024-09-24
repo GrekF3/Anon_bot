@@ -9,7 +9,8 @@ import mimetypes
 import os
 from asgiref.sync import sync_to_async
 
-from telegram import InputFile
+from telegram import InputFile, File
+from telegram.error import TelegramError
 
 from PIL import Image
 import qrcode
@@ -69,10 +70,6 @@ def generate_custom_qr_code(link, size=300, logo_path=None):
 
 
 
-
-
-
-
 async def generate_link(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     logger.info("Пользователь запрашивает генерацию ссылки")
     context.user_data['state'] = SELECTING_FILE_TYPE
@@ -84,8 +81,8 @@ async def generate_link(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
     await update.message.reply_text(
         "Пожалуйста, отправьте ваш файл.\n\n"
-        "*Обратите внимание, что максимальный размер файла для загрузки в Telegram составляет 20 МБ*.\n\n"
-        "Если файл больше, вы можете загрузить его на нашем сайте:",
+        "*Обратите внимание, что максимальный размер файла для загрузки составляет 1 Гб.*\n\n"
+        "Также вы можете воспользоваться веб-версией для загрузки файлов:",
         reply_markup=reply_markup,
         parse_mode='Markdown'
     )
@@ -97,138 +94,97 @@ async def update_generated_links(user_id):
     await sync_to_async(user.save)()
     return
 
-async def handle_audio(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    audio = update.message.audio
-    file = await audio.get_file()
-    file_size = audio.file_size
-    logger.info(f"Обработка аудиофайла размером {file_size} байт")
-    keyboard = [
-        [InlineKeyboardButton("anonloader.io", url="https://anonloader.io")],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+async def handle_media(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    message = update.message
+    file = None
+    file_type = None
+    file_size = None
+    file_mime_type = None
+    progress_message = None
 
-    if file_size > 20 * 1024 * 1024:  # 20 MB
-        await update.message.reply_text("Файл превышает ограничение Telegram в 20 МБ. Вы можете загрузить его на нашем сайте.", reply_markup=reply_markup)
-        return
-
-    file_path = file.file_path
-    file_name = os.path.basename(file_path)
-    mime_type, _ = mimetypes.guess_type(file_name)
-    logger.info(f"MIME-тип аудиофайла: {mime_type}")
-
-    file_data = await file.download_as_bytearray()
-    context.user_data['uploaded_content'] = {
-        'type': 'audio',
-        'content': file_data,
-        'mime_type': mime_type,
-    }
-
-    await ask_for_link_lifetime(update)
-
-async def handle_file(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    document = update.message.document
-    file = await document.get_file()
-    file_size = document.file_size
-    logger.info(f"Обработка файла размером {file_size} байт")
-    keyboard = [
-        [InlineKeyboardButton("anonloader.io", url="https://anonloader.io")],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    if file_size > 20 * 1024 * 1024:  # 20 MB
-        logger.warning("Файл превышает допустимый размер в 20 МБ")
-        await update.message.reply_text("Файл превышает ограничение Telegram в 20 МБ. Вы можете загрузить его на нашем сайте.", reply_markup=reply_markup)
-        return
-
-    # Получаем путь к файлу и определяем MIME-тип
-    file_path = file.file_path
-    file_name = os.path.basename(file_path)
-    mime_type, _ = mimetypes.guess_type(file_name)
-    logger.info(f"MIME-тип файла: {mime_type}")
-
-    # Если MIME-тип является изображением, обрабатываем его как изображение
-    if mime_type and mime_type.startswith('image/'):
-        logger.info('Файл распознан как изображение, передача в обработчик изображений.')
-        await handle_image(update, context)
-        return
-
-    # Если MIME-тип является аудио, обрабатываем его как аудиофайл
-    if mime_type and mime_type.startswith('audio/'):
-        logger.info('Файл распознан как аудио, передача в обработчик аудио.')
-        await handle_audio(update, context)
-        return
-
-    # Обработка как файла в остальных случаях
-    file_data = await file.download_as_bytearray()
-    context.user_data['uploaded_content'] = {
-        'type': 'file',
-        'content': file_data,
-        'mime_type': mime_type,
-    }
-
-    await ask_for_link_lifetime(update)
-
-async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    # Если изображение было отправлено как документ, используем этот блок для получения файла
-    if update.message.document:
-        document = update.message.document
-        file = await document.get_file()
-        file_size = document.file_size
+    # Определяем тип файла
+    if message.video:
+        file = await message.video.get_file()
+        file_size = message.video.file_size
+        file_mime_type = message.video.mime_type
+        file_type = 'video'
+    elif message.audio:
+        file = await message.audio.get_file()
+        file_size = message.audio.file_size
+        file_mime_type = message.audio.mime_type
+        file_type = 'audio'
+    elif message.document:
+        file = await message.document.get_file()
+        file_size = message.document.file_size
+        file_mime_type = message.document.mime_type
+        file_type = 'file'
+        # Проверяем, является ли документ изображением или аудио
+        if file_mime_type and file_mime_type.startswith('image/'):
+            file_type = 'image'
+        elif file_mime_type and file_mime_type.startswith('audio/'):
+            file_type = 'audio'
+    elif message.photo:
+        file = await message.photo[-1].get_file()  # Берем самое большое изображение
+        file_size = message.photo[-1].file_size
+        file_mime_type = 'image/jpeg'  # Telegram не всегда предоставляет MIME-тип для фотографий
+        file_type = 'image'
     else:
-        # Если изображение отправлено как фото, используем последний элемент в списке фотографий (самое большое изображение)
-        photo = update.message.photo[-1]
-        file = await photo.get_file()
-        file_size = photo.file_size
-
-    keyboard = [
-        [InlineKeyboardButton("anonloader.io", url="https://anonloader.io")],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-
-    if file_size > 20 * 1024 * 1024:
-        logger.warning("Файл превышает допустимый размер в 20 МБ")  # 20 MB
-        await update.message.reply_text("Файл превышает ограничение Telegram в 20 МБ. Вы можете загрузить его на нашем сайте.", reply_markup=reply_markup)
+        await update.message.reply_text("Этот тип файла не поддерживается.")
         return
 
-    file_path = file.file_path
-    file_name = os.path.basename(file_path)
-    mime_type, _ = mimetypes.guess_type(file_name)
-    logger.info(f"MIME-тип изображения: {mime_type}")
-
-    file_data = await file.download_as_bytearray()
-    context.user_data['uploaded_content'] = {
-        'type': 'image',
-        'content': file_data,
-        'mime_type': mime_type,
-    }
-
-    await ask_for_link_lifetime(update)
-
-async def handle_video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    video = update.message.video
-    file_size = video.file_size
-
-    keyboard = [
-        [InlineKeyboardButton("anonloader.io", url="https://anonloader.io")],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    if file_size > 20 * 1024 * 1024:  # 20 MB
-        logger.warning("Файл превышает допустимый размер в 20 МБ")
-        await update.message.reply_text("Файл превышает ограничение Telegram в 20 МБ. Вы можете загрузить его на нашем сайте.", reply_markup=reply_markup)
+    logger.info(f"Обрабатывается {file_type} размером {file_size} байт")
+    max_file_size = 1_010_000_000  # 1,01 ГБ в байтах
+    if file_size > max_file_size:
+        await update.message.reply_text(f"Файл слишком большой. Максимальный размер файла: 1ГБ.")
         return
 
-    file = await video.get_file()
-    file_path = file.file_path
-    file_name = os.path.basename(file_path)
-    mime_type, _ = mimetypes.guess_type(file_name)
-    logger.info(f"MIME-тип видеофайла: {mime_type}")
+    try:
+        # Отправляем начальное сообщение о загрузке
+        progress_message = await update.message.reply_text(f"Начинаю обработку {file_type}...")
 
-    file_data = await file.download_as_bytearray()
-    context.user_data['uploaded_content'] = {
-        'type': 'video',
-        'content': file_data,
-        'mime_type' : mime_type,
-    }
-    await ask_for_link_lifetime(update)
+        # Обновляем сообщение о получении информации о файле
+        await context.bot.edit_message_text(
+            chat_id=update.message.chat_id,
+            message_id=progress_message.message_id,
+            text="Получаю информацию о файле..."
+        )
+
+        # Обрабатываем файл (можно загрузить больше 20 МБ)
+        file_data = await file.download_as_bytearray()
+        file_type_translation = {
+            'image': 'изображения',
+            'video': 'видео',
+            'audio': 'аудио',
+            'file': 'документа',
+        }
+        file_type_russian = file_type_translation.get(file_type, 'файла')  # По умолчанию 'файл'
+
+        # Обновляем сообщение о процессе загрузки
+        await context.bot.edit_message_text(
+            chat_id=update.message.chat_id,
+            message_id=progress_message.message_id,
+            text=f"Обработка {file_type_russian} завершена."
+        )
+
+        # Сохраняем информацию о загруженном контенте
+        context.user_data['uploaded_content'] = {
+            'type': file_type,
+            'content': file_data,
+            'mime_type': file_mime_type,
+        }
+
+        # Запрашиваем время жизни ссылки
+        await ask_for_link_lifetime(update)
+
+    except Exception as e:
+        logger.error(f"Ошибка при загрузке файла: {str(e)}")
+        if progress_message:
+            await context.bot.edit_message_text(
+                chat_id=update.message.chat_id,
+                message_id=progress_message.message_id,
+                text="Произошла ошибка при загрузке файла."
+            )
+
 
 
 async def ask_for_link_lifetime(update: Update) -> None:
@@ -315,7 +271,7 @@ async def link_lifetime_selected(update: Update, context: ContextTypes.DEFAULT_T
             avatar_img.save("avatar_with_custom_qr.jpg")
             loading_message = await query.message.edit_text("Проверяем, что все в порядке...")
             
-            if download_count == 1:
+            if int(download_count) == 1:
                 defender_message = '🛡️ <i>Ваша ссылка защищена и удалится после первого открытия.</i>'
             else:
                 defender_message = "🛡️ <i>Ваша ссылка защищена.</i>"

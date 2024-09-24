@@ -35,8 +35,10 @@ services:
     depends_on:
       - db
       - web
+      - telegram-bot-api
     volumes:
       - .:/app
+      - telegram-bot-api-data:/var/lib/telegram-bot-api  # Монтируем тот же volume
     restart: always
     environment:
       - ANON_BOT_KEY=${ANON_TOKEN}
@@ -67,7 +69,21 @@ services:
     environment:
       - ANON_BOT_KEY=${ANON_SUPPORT_TOKEN}
 
+  telegram-bot-api:
+    image: aiogram/telegram-bot-api:latest
+    environment:
+      TELEGRAM_API_ID: "2110117"  # Замените на ваш API ID
+      TELEGRAM_API_HASH: "3716da0d0d88a9317845ab7e20daf2a0"  # Замените на ваш API Hash
+      TELEGRAM_LOCAL: "1"
+      TELEGRAM_MAX_CONNECTIONS: "100"  # Установите в зависимости от ожидаемой нагрузки
+      TELEGRAM_VERBOSITY: "1"  # Для повышения уровня логирования
+    volumes:
+      - telegram-bot-api-data:/var/lib/telegram-bot-api
+    ports:
+      - "8081:8081"  # Порт для доступа к Bot API
+
 volumes:
   media_volume:
   static_volume:
   postgres_data:
+  telegram-bot-api-data:

@@ -1,13 +1,9 @@
-document.getElementById('uploadForm').onsubmit = function () {
-    document.getElementById('loadingIndicator').style.display = 'block';
-    document.querySelector('button[type="submit"]').disabled = true;
-};
-
 document.addEventListener("DOMContentLoaded", function () {
     const selectLifetime = document.getElementById("file_lifetime");
     const oneTimeNotice = document.getElementById("oneTimeNotice");
     const submitButton = document.querySelector('#uploadForm button[type="submit"]');
     const fileInput = document.querySelector('#uploadForm input[type="file"]');
+    const loadingIndicator = document.getElementById('loadingIndicator');
 
     // Функция для отображения уведомления при выборе одноразовой ссылки
     function toggleOneTimeNotice() {
@@ -26,6 +22,13 @@ document.addEventListener("DOMContentLoaded", function () {
             submitButton.disabled = true;
         }
     }
+
+    // Скрытие индикатора загрузки после полной загрузки страницы
+    window.onload = function () {
+        if (loadingIndicator) {
+            loadingIndicator.style.display = 'none'; // Скрываем индикатор
+        }
+    };
 
     // Инициализация событий при загрузке
     selectLifetime.addEventListener("change", function () {

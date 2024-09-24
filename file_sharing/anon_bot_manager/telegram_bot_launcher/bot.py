@@ -1,15 +1,12 @@
 import logging
-from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler
+from telegram import Update, Bot
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler, ApplicationBuilder
 import django
 from django.conf import settings
 from anon_bot_manager.telegram_bot_launcher.handlers.main_menu import start, handle_user_input, cancel
 from anon_bot_manager.telegram_bot_launcher.handlers.link_generation import (
     link_lifetime_selected,
-    handle_image,
-    handle_file,
-    handle_video,
-    handle_audio,
+    handle_media,
 )
 from anon_bot_manager.telegram_bot_launcher.handlers.support import support_bot
 from anon_bot_manager.telegram_bot_launcher.handlers.privacy_policy import accept_policy
@@ -32,7 +29,7 @@ logging.getLogger('telegram').setLevel(logging.WARNING)  # Для старых �
 def register_handlers(application: Application) -> None:
     """Регистрирует все обработчики для бота"""
     logger.info("Регистрация обработчиков...")
-    
+
     # Команда /start вызывает start, которое показывает главное меню
     application.add_handler(CommandHandler("start", start))
     logger.info("Обработчик /start зарегистрирован")
@@ -45,12 +42,9 @@ def register_handlers(application: Application) -> None:
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_user_input))
     logger.info("Обработчик текстовых сообщений зарегистрирован")
 
-    # Обработчики для загрузки файлов (фото, видео, документы)
-    application.add_handler(MessageHandler(filters.PHOTO, handle_image))
-    application.add_handler(MessageHandler(filters.VIDEO, handle_video))
-    application.add_handler(MessageHandler(filters.AUDIO, handle_audio))
-    application.add_handler(MessageHandler(filters.Document.ALL, handle_file))
-    logger.info("Обработчики загрузки файлов зарегистрированы")
+    # Универсальный обработчик для всех типов файлов (фото, видео, аудио, документы)
+    application.add_handler(MessageHandler(filters.PHOTO | filters.VIDEO | filters.AUDIO | filters.Document.ALL, handle_media))
+    logger.info("Универсальный обработчик для медиа файлов зарегистрирован")
 
     # Обработчик для выбора времени жизни ссылки
     application.add_handler(CallbackQueryHandler(link_lifetime_selected, pattern='one_time|1_day|3_days|7_days'))
@@ -69,7 +63,8 @@ def main() -> None:
     logger.info("Инициализация бота...")
 
     try:
-        application = Application.builder().token(settings.ANON_TOKEN).build()
+        # Создаем приложение без использования token()
+        application = ApplicationBuilder().token(settings.ANON_TOKEN).base_url("http://telegram-bot-api:8081/bot").base_file_url("http://telegram-bot-api:8081/file/bot").local_mode(True).build()
         register_handlers(application)
         logger.info('Бот успешно запущен!')
         application.run_polling(allowed_updates=Update.ALL_TYPES)
