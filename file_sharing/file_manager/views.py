@@ -484,3 +484,14 @@ def download_file(request, key):
         logger.info("Файл имеет срок жизни, он не будет удалён после скачивания.")
 
     return response
+
+def robots_txt(request):
+    lines = [
+        "User-agent: *",
+        "Disallow: /admin_bot/",
+        "Disallow: /upload/",
+        "Disallow: /file/",
+        "Disallow: /download/",
+        "Allow: /",  # Разрешить главную страницу и другие открытые страницы
+    ]
+    return HttpResponse("\n".join(lines), content_type="text/plain")
