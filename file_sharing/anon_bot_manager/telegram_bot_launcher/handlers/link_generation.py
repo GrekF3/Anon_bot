@@ -203,7 +203,7 @@ async def ask_for_link_lifetime(update: Update) -> None:
     
 async def link_lifetime_selected(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     LIFETIME_DISPLAY = {
-        'one_time': 'Одноразовая ссылка',
+        'one_time': 'Одноразовая ссылка | Срок жизни ссылки: 7 дней',
         '1_day': '1 день',
         '3_days': '3 дня',
         '7_days': '7 дней'

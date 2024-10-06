@@ -26,6 +26,14 @@
     <title>AnonLoader | Файл</title>
 </head>
 <body>
+    <div id="overlay" style="display: flex">
+        <div class="loader-dots">
+            <div></div>
+            <div></div>
+            <div></div>
+        </div>
+        <p id="loadStatusText">Загрузка файла...</p>
+    </div>
     <div class="container-wrapper">
         <div class="container-base">
             <h1 class="mb-3">Ваш файл готов</h1>
@@ -39,11 +47,6 @@
                 <h2><strong> Файл доступен ОДИН раз. Не перезагружайте страницу</strong></h2>
             {% endif %}
 
-            <div id="loadingIndicator" class="loading-indicator" style="display: block;">
-                <p>Расшифровка файла, пожалуйста, подождите...</p>
-                <div class="loader"></div>
-            </div>
-    
             {% if file.type == 'image' or file.type == 'image_text' %}
                 <img src="data:{{ file.mime_type }};base64,{{ image_data }}" alt="Изображение" class="file-preview">
                 {% if file.type == 'image_text' %}
@@ -52,12 +55,13 @@
                 <a href="{% url 'file_download' file.unique_key %}" class="btn btn-primary" download>Скачать файл</a>
     
             {% elif file.type == 'video' %}
-                <video controls class="file-preview">
+                <video controls controlslist="nodownload" class="file-preview">
                     <source src="data:{{ file.mime_type }};base64,{{ video_data }}" type="{{ file.mime_type }}">
                     Ваш браузер не поддерживает видео.
                 </video>
                 <a href="{% url 'file_download' file.unique_key %}" class="btn btn-primary" download>Скачать видео</a>
-    
+
+                
             {% elif file.type == 'audio' %}
                 <audio controls class="file-preview-audio">
                     <source src="data:{{ file.mime_type }};base64,{{ audio_data }}" type="{{ file.mime_type }}">
@@ -75,5 +79,5 @@
         </div>
     </div>
 </body>
-<script src="{% static 'js/main.js' %}"></script>
+<script src="{% static 'js/d-loader.js' %}"></script>
 </html>

@@ -15,21 +15,26 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     username = update.message.from_user.username
     context.user_data.clear()
 
-    # Получаем или создаем профиль пользователя
-    user, created = await sync_to_async(BotUser.objects.get_or_create)(
+    try:
+        # Получаем или создаем профиль пользователя
+        user, created = await sync_to_async(BotUser.objects.get_or_create)(
             user_id=user_id,
             defaults={'username': username}
         )
-    # Обновляем username, если он изменился
-    if not created and user.username != username:
-        user.username = username
-        user.save()
 
-    # Проверяем согласие пользователя на политику конфиденциальности
-    if not user.user_consent:
-        await privacy_policy(update, context)
-    else:
-        await show_main_menu(update)
+        # Обновляем username, если он изменился
+        if not created and user.username != username:
+            user.username = username
+            await sync_to_async(user.save)()  # Асинхронное сохранение
+
+        # Проверяем согласие пользователя на политику конфиденциальности
+        if not user.user_consent:
+            await privacy_policy(update, context)
+        else:
+            await show_main_menu(update)
+
+    except Exception as e:
+        print(f"Ошибка при обработке пользователя: {e}")
 
 async def show_main_menu(update: Update) -> None:
     user_id = update.message.from_user.id

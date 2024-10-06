@@ -3,7 +3,8 @@ document.addEventListener("DOMContentLoaded", function () {
     const oneTimeNotice = document.getElementById("oneTimeNotice");
     const submitButton = document.querySelector('#uploadForm button[type="submit"]');
     const fileInput = document.querySelector('#uploadForm input[type="file"]');
-    const loadingIndicator = document.getElementById('loadingIndicator');
+    const overlay = document.getElementById('overlay');
+    const statusText = document.getElementById('uploadStatusText');
 
     // Функция для отображения уведомления при выборе одноразовой ссылки
     function toggleOneTimeNotice() {
@@ -23,13 +24,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // Скрытие индикатора загрузки после полной загрузки страницы
-    window.onload = function () {
-        if (loadingIndicator && loadingIndicator.style) {
-            loadingIndicator.style.display = 'none'; // Скрываем индикатор
-        }
-    };
-
     // Инициализация событий при загрузке
     selectLifetime.addEventListener("change", function () {
         toggleOneTimeNotice();
@@ -42,107 +36,98 @@ document.addEventListener("DOMContentLoaded", function () {
     toggleOneTimeNotice();
     toggleSubmitButtonState();
 
-    // Проверка, является ли клиент ботом
-    function isBot() {
-        const userAgent = navigator.userAgent.toLowerCase();
-        const bots = [
-            'googlebot',           // Google
-            'bingbot',             // Bing
-            'slurp',               // Yahoo
-            'duckduckbot',         // DuckDuckGo
-            'baiduspider',         // Baidu
-            'yandexbot',           // Yandex
-            'sogou',               // Sogou
-            'exabot',              // Exalead
-            'facebot',             // Facebook
-            'ia_archiver',         // Alexa
-            'applebot',            // Apple
-            'twitterbot',          // Twitter
-            'rogerbot',            // Moz
-            'ahrefsbot',           // Ahrefs
-            'semrushbot',          // SEMrush
-            'mj12bot',             // Majestic-12
-            'dotbot',              // Open Site Explorer (Moz)
-            'gigabot',             // Gigabot
-            'archive.org_bot',     // Internet Archive
-            'surveybot',           // Facebook SurveyBot
-            'linkdexbot',          // Linkdex
-            'seznambot',           // Seznam
-            'pinterestbot',        // Pinterest
-            'redditbot',           // Reddit
-            'whatsapp',            // WhatsApp
-            'telegrambot',         // Telegram
-            'discordbot',          // Discord
-            'w3c_validator',       // W3C Validator
-            'coccocbot-web',       // Cốc Cốc (Vietnamese search engine)
-            'ia_archiver-web.archive.org', // Wayback Machine
-            'screamingfrog',       // Screaming Frog SEO Spider
-            'google-structured-data-testing-tool', // Google Structured Data Testing Tool
-            'datadome',            // DataDome bot detection
-            'linkfluence',         // Linkfluence
-            'python-requests',     // Python requests library (used in scraping)
-            'curl',                // Curl command-line tool (used in scraping)
-            'wget',                // Wget command-line tool (used in scraping)
-            'python',              // Generic Python user-agent (used in scraping)
-            'phantomjs',           // Headless browser
-            'headlesschrome',      // Headless Chrome
-            'chrome-lighthouse',   // Google Lighthouse
-            'uptimerobot',         // Uptime Robot
-            'check_http',          // Nagios check HTTP
-            'node-fetch',          // Node.js fetch
-            'github-camo',         // GitHub image proxy
-            'discordbot',          // Discord Bot
-            'okhttp',              // OkHttp library (used in scraping)
-            'java',                // Generic Java user-agent (used in scraping)
-            'bot',                 // Generic 'bot' keyword for unidentified bots
-            'crawler',             // Generic 'crawler' keyword
-            'spider',              // Generic 'spider' keyword
-            'fetch',               // Generic 'fetch' keyword
-            'scrapy',              // Scrapy (Python web scraping framework)
-        ];
-
-        return bots.some(bot => userAgent.includes(bot));
-    }
-
-    if (!isBot()) {
-        // Анимация заголовка только для пользователей
-        const originalTitle = document.title = "AnonLoader";
-        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        const changeInterval = 100;
-        const transitionDuration = 2000;
-        const endDelay = 2000;
-
-        function generateRandomCharacter() {
-            return characters.charAt(Math.floor(Math.random() * characters.length));
-        }
-
-        function animateTitleToRandom(index = 0) {
-            if (index < originalTitle.length) {
-                document.title = document.title.substring(0, index) + generateRandomCharacter() + originalTitle.substring(index + 1);
-                setTimeout(() => animateTitleToRandom(index + 1), changeInterval);
-            } else {
-                animateTitleToOriginal(originalTitle.length - 1);
-            }
-        }
-
-        function animateTitleToOriginal(index) {
-            if (index >= 0) {
-                document.title = document.title.substring(0, index) + originalTitle.charAt(index) + document.title.substring(index + 1);
-                setTimeout(() => animateTitleToOriginal(index - 1), changeInterval);
-            } else {
-                setTimeout(startCycle, transitionDuration + endDelay);
-            }
-        }
-
-        function startCycle() {
+    // Добавляем функционал затемнения фона и показа процесса отправки
+    document.getElementById('uploadForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+    
+        // Показать overlay при начале загрузки
+        overlay.style.display = 'flex';
+        statusText.style.opacity = 1;
+    
+        const formData = new FormData(this);
+        const xhr = new XMLHttpRequest();
+    
+        xhr.open('POST', this.action, true);
+        xhr.timeout = 10000;  // Тайм-аут 10 секунд
+    
+        xhr.ontimeout = function() {
+            console.error('Превышено время ожидания запроса');
+            overlay.style.display = 'none';  // Скрыть overlay при тайм-ауте
+            statusText.textContent = 'Не удалось загрузить файл. Попробуйте снова.';
+            
+            // Перезагрузка через 1 секунду
             setTimeout(() => {
-                animateTitleToRandom();
-            }, transitionDuration);
-        }
-
-        startCycle();
-    } else {
-        // Устанавливаем фиксированный заголовок для ботов
-        document.title = "AnonLoader - Бесплатный и анонимный файлообменник";
-    }
+                window.location.reload();
+            }, 1000);
+        };
+    
+        xhr.onerror = function() {
+            console.error('Ошибка запроса на сервер');
+            overlay.style.display = 'none';  // Скрыть overlay при ошибке запроса
+            statusText.textContent = 'Не удалось загрузить файл. Попробуйте снова.';
+    
+            // Перезагрузка через 1 секунду
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        };
+    
+        xhr.onload = function() {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                console.log('Файл успешно загружен');
+            } else {
+                console.error('Ошибка при загрузке файла: ' + xhr.status);
+                overlay.style.display = 'none';  // Скрыть overlay при ошибке на сервере
+                statusText.textContent = 'Не удалось загрузить файл. Попробуйте снова.';
+    
+                // Перезагрузка через 1 секунду
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            }
+        };
+    
+        const interval = setInterval(() => {
+            fetch('/check-upload-status/')
+                .then(response => response.json())
+                .then(statusData => {
+                    console.log("Статус с сервера:", statusData.message); 
+                    statusText.textContent = statusData.message; 
+    
+                    if (statusData.status === 'completed' || statusData.status === 'error') {
+                        clearInterval(interval);
+    
+                        // Если статус "completed", подождать 1 секунду и переадресовать
+                        if (statusData.status === 'completed') {
+                            setTimeout(() => {
+                                overlay.style.display = 'none';  // Скрыть overlay перед переадресацией
+                                window.location.href = '/upload/success/';
+                            }, 1000);
+                        }
+    
+                        // Если ошибка, сразу скрыть overlay и перезагрузить страницу
+                        if (statusData.status === 'error') {
+                            overlay.style.display = 'none'; // Скрыть overlay при ошибке
+    
+                            // Перезагрузка через 1 секунду
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1000);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error("Ошибка при получении статуса:", error); 
+                    clearInterval(interval);
+                    overlay.style.display = 'none'; // Скрыть overlay при ошибке в запросе статуса
+    
+                    // Перезагрузка через 1 секунду
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                });
+        }, 3000);
+    
+        xhr.send(formData);
+    });
 });

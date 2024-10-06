@@ -13,6 +13,7 @@ from .forms import UniqueKeyForm, UploadFileForm
 from .tasks import delete_qr_code_file
 # -------LOGICAL BASE
 import os
+import random
 import mimetypes
 import uuid, base64
 from cryptography.fernet import Fernet
@@ -149,24 +150,31 @@ def upload_file(request):
 @csrf_exempt
 def handle_file_upload(request):
     if request.method == 'POST':
+        request.session.pop('upload_status', None)
+        request.session.pop('upload_success', None)
+        request.session.save()  # Сохранение изменений в сессии
+        
+        request.session['upload_status'] = {
+            'status': 'in_progress',
+            'message': 'Загрузка файла...'
+        }
+        request.session.save()  # Сохранение сессии на этом этапе
+        print(request.session['upload_status'])
         uploaded_file = request.FILES.get('file')
         unique_key = str(uuid.uuid4())  # Генерация уникального ключа
         text = request.POST.get('text', '')
         mime_type = request.POST.get('mime_type', 'application/octet-stream')
         expiry_duration = request.POST.get('file_lifetime') 
+        
+        # Сохраняем статус в сессии для каждого пользователя
 
         if uploaded_file:
             try:
+                request.session['upload_status']['message'] = 'Шифрование файла...'
+                request.session.save()  # Сохранение статуса в сессии
+                print(request.session['upload_status'])
                 # Чтение содержимого файла
                 file_data = uploaded_file.read()
-
-                # Генерация ключа шифрования и шифрование файла
-                encryption_key = Fernet.generate_key().decode()
-                fernet = Fernet(encryption_key.encode())
-                encrypted_file_data = fernet.encrypt(file_data)
-
-                # Создание файла в памяти с зашифрованными данными
-                encrypted_file_content = ContentFile(encrypted_file_data, name=uploaded_file.name)
 
                 # Определение типа файла (изображение, видео или обычный файл)
                 mime_type, _ = mimetypes.guess_type(uploaded_file.name)
@@ -176,6 +184,14 @@ def handle_file_upload(request):
                     'audio' if mime_type and mime_type.startswith('audio') else
                     'file'
                 )
+
+                # Генерация ключа шифрования и шифрование файла
+                encryption_key = Fernet.generate_key().decode()
+                fernet = Fernet(encryption_key.encode())
+                encrypted_file_data = fernet.encrypt(file_data)
+                # Создание файла в памяти с зашифрованными данными
+                encrypted_file_content = ContentFile(encrypted_file_data, name=uploaded_file.name)
+
                 
                 # Создание записи в базе данных
                 file_record = File.objects.create(
@@ -186,21 +202,6 @@ def handle_file_upload(request):
                     text=text,
                     mime_type=mime_type
                 )
-
-                # Генерация QR-кода и его сохранение
-                qr_code_dir = f"{settings.MEDIA_ROOT}/qr_codes/"
-                if not os.path.exists(qr_code_dir):
-                    os.makedirs(qr_code_dir)
-
-                download_link = request.build_absolute_uri(reverse('file_view', args=[unique_key]))
-                qr_code_img = generate_custom_qr_code(download_link)
-                avatar_img = Image.open(f'/home/app/web/media/logo/base.png')
-                qr_size = avatar_img.width // 3
-                qr_code_img = qr_code_img.resize((qr_size, qr_size))
-                avatar_img.paste(qr_code_img, (avatar_img.width - qr_size, avatar_img.height - qr_size))
-
-                qr_code_image_path = f"{qr_code_dir}avatar_with_custom_qr_{unique_key}.jpg"
-                avatar_img.save(qr_code_image_path)
 
                 # Установка срока жизни файла
                 if expiry_duration == 'one_time':
@@ -219,6 +220,25 @@ def handle_file_upload(request):
                     except ValueError:
                         expiration_str = 'не задан'
 
+
+                request.session['upload_status']['message'] = 'Генерация QR-кода...'
+                request.session.save()  # Сохранение статуса в сессии
+                print(request.session['upload_status'])
+                # Генерация QR-кода и его сохранение
+                qr_code_dir = f"{settings.MEDIA_ROOT}/qr_codes/"
+                if not os.path.exists(qr_code_dir):
+                    os.makedirs(qr_code_dir)
+
+                download_link = request.build_absolute_uri(reverse('file_view', args=[unique_key]))
+                qr_code_img = generate_custom_qr_code(download_link)
+                avatar_img = Image.open(f'/home/app/web/media/logo/base.png')
+                qr_size = avatar_img.width // 3
+                qr_code_img = qr_code_img.resize((qr_size, qr_size))
+                avatar_img.paste(qr_code_img, (avatar_img.width - qr_size, avatar_img.height - qr_size))
+
+                qr_code_image_path = f"{qr_code_dir}avatar_with_custom_qr_{unique_key}.jpg"
+                avatar_img.save(qr_code_image_path)
+
                 # Сохранение информации в сессии
                 request.session['upload_success'] = {
                     'unique_key': unique_key,
@@ -227,11 +247,22 @@ def handle_file_upload(request):
                     'qr_code_image_path': qr_code_image_path,
                 }
 
+                delete_qr_code_file.apply_async((qr_code_image_path,), eta=now() + timedelta(minutes=5))
+                
+                request.session['upload_status']['status'] = 'completed'
+                request.session['upload_status']['message'] = 'Успешно. Переадресация...'
+                request.session.save()  # Сохранение финального статуса
+                print(request.session['upload_status'])
                 # Перенаправление на страницу успешной загрузки
-                return HttpResponseRedirect(reverse('upload_success'))
+                return JsonResponse({'success': True, 'unique_key': unique_key})
 
             except Exception as e:
                 logger.error(f"Ошибка при обработке файла: {str(e)}")
+                request.session['upload_status'] = {
+                    'status': 'error',
+                    'message': 'Ошибка при обработке файла.'
+                }
+                request.session.save()  # Сохранение статуса ошибки
                 return JsonResponse({'error'}, status=500)
         
         logger.error("Ошибка: отсутствуют обязательные поля")
@@ -241,8 +272,18 @@ def handle_file_upload(request):
     return JsonResponse({'error': 'Invalid method'}, status=405)
 
 
+def check_upload_status(request):
+    # Проверяем, есть ли статус загрузки в сессии
+    upload_status = request.session.get('upload_status', {'status': 'not_started', 'message': ''})
+    return JsonResponse(upload_status)
+
+def check_load_status(request):
+    # Проверяем, есть ли статус скачивания в сессии
+    download_status = request.session.get('download_status', {'status': 'not_started', 'message': ''})
+    return JsonResponse(download_status)
 
 def home(request, error_message=None):
+    request.session.flush()  # Полный сброс сессии
     error_file_message = None
     upload_form = UploadFileForm()
     search_form = UniqueKeyForm()
@@ -281,7 +322,15 @@ def home(request, error_message=None):
 
 # Представление для отображения и скачивания файла
 def file_view(request, key):
+    request.session['download_status'] = {
+        'status': 'in_progress',
+        'message': 'Загрузка файла...'
+    }
+    request.session.save() 
+    
+
     error_message = None  # Инициализируем переменную для ошибки
+
     logger.info("Начало обработки запроса для ключа: %s", key)
 
     try:
@@ -337,10 +386,15 @@ def file_view(request, key):
 
     logger.info("Файл прочитан, начинаем расшифровку")
     decrypted_data = decrypt_file(encrypted_data, file_record.encryption_key)
-    
+
+
+    request.session['download_status']['message'] = "Расшифровка файла..."
+    request.session.save() 
+
+
     if decrypted_data is None:
         logger.error("Ошибка расшифровки файла")
-        return HttpResponse("Не удалось расшифровать файл. Проверьте ключ шифрования.", status=400)
+        return HttpResponse("Не удалось расшифровать файл.", status=400)
 
     mime_type = file_record.mime_type
     logger.info("MIME-тип файла: %s", mime_type)
@@ -387,6 +441,9 @@ def file_view(request, key):
     if not file_record.is_opened:
         link_opened(file_record)
 
+    request.session['download_status']['status'] = 'completed'
+    request.session['download_status']['message'] = "Загрузка завершена."
+    request.session.save()
     return render_response
 
 def link_opened(file_record):
@@ -408,9 +465,6 @@ def upload_success_view(request):
         qr_code_url = None
         if qr_code_image_path:
             qr_code_url = f"{request.build_absolute_uri('/media/qr_codes/')}{os.path.basename(qr_code_image_path)}"
-            
-            # Планируем удаление QR-кода через 5 минут
-            delete_qr_code_file.apply_async((qr_code_image_path,), eta=now() + timedelta(minutes=5))
 
         return render(request, 'upload_success.html', {
             'unique_key': upload_success['unique_key'],
@@ -492,12 +546,42 @@ def robots_txt(request):
         "Disallow: /upload/",
         "Disallow: /file/",
         "Disallow: /download/",
+        "Allow: /",
         "",
-        "User-agent: facebookexternalhit",
-        "Allow: /",
-        "User-agent: TelegramBot",
-        "Allow: /",
-        "User-agent: Twitterbot",
-        "Allow: /",
+        "Sitemap: https://anonloader.io/sitemap.xml"
     ]
     return HttpResponse("\n".join(lines), content_type="text/plain")
+
+def restopre_php_page(request):
+    random_phrases_ru = [
+        "Ты что-то задумал, а я уже всё понял!",
+        "Попытка — не пытка, но ты точно пытался!",
+        "Ну вот, почти получилось... Но нет!",
+        "Твоя попытка не прошла незамеченной. Но она провалилась!",
+        "Хорошая попытка, но моя защита лучше!",
+        "Ты попался! Ну почти.",
+        "Упс, не в этот раз!",
+        "Кто-то здесь явно что-то не то замышляет!",
+    ]
+
+    random_phrases_en = [
+        "Oops! Looks like you tried, but no luck!",
+        "Nice try, but not good enough!",
+        "Your effort was noticed, but it didn't work!",
+        "Almost had it... Almost!",
+        "Better luck next time, champ!",
+        "Caught you trying, didn't I?",
+        "Did you really think this would work? Think again!",
+        "Oops! Not today!",
+        "You might be smart, but I'm smarter!",
+        "Nice attempt, but the firewall says no!"
+    ]
+    random_phrase_ru = random.choice(random_phrases_ru)
+    random_phrase_en = random.choice(random_phrases_en)
+    
+    # Выбираем рандомную фразу
+    # Рендерим страницу с рандомной фразой
+    return render(request, 'restore.html', {
+        'random_phrase_ru': random_phrase_ru,
+        'random_phrase_en': random_phrase_en
+    })

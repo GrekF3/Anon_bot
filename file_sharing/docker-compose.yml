@@ -33,15 +33,8 @@ services:
     depends_on:
       - web
     restart: always
-
-  certbot:
-    image: certbot/certbot:latest
-    container_name: certbot
-    volumes:
-      - ./certbot/conf:/etc/letsencrypt
-      - ./certbot/www:/var/www/certbot
-    command: certonly --webroot -w /var/www/certbot --force-renewal --email lider2928@gmail.com -d anonloader.io --agree-tos
-    
+      
+      
   db:
     image: postgres:latest
     environment:
@@ -93,25 +86,13 @@ services:
       - web
     restart: always
 
-  flower:
-    build: .
-    command: celery -A file_sharing flower
-    volumes:
-      - .:/app
-    depends_on:
-      - celery
-      - web
-    ports:
-      - "5555:5555"
-    restart: always
-
   telegram-bot-api:
     image: aiogram/telegram-bot-api:latest
     environment:
       TELEGRAM_API_ID: "2110117" 
       TELEGRAM_API_HASH: "3716da0d0d88a9317845ab7e20daf2a0"
       TELEGRAM_LOCAL: "1"
-      TELEGRAM_MAX_CONNECTIONS: "1000"  # Установите в зависимости от ожидаемой нагрузки
+      TELEGRAM_MAX_CONNECTIONS: "50"  # Установите в зависимости от ожидаемой нагрузки
       TELEGRAM_VERBOSITY: "1"  # Для повышения уровня логирования
     volumes:
       - telegram-bot-api-data:/var/lib/telegram-bot-api

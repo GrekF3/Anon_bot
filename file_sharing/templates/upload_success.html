@@ -28,6 +28,7 @@
         <p>Сохраните этот ключ, он понадобятся для доступа к файлу.</p>
         {% if file_expiration == 'one_time' %}
             <p>Срок жизни файла: <strong>Одноразовая ссылка</strong></p>
+            <p>Срок жизни ссылки: <strong>7 дней</strong></p>
         {% else %}
             <p>Срок жизни файла: <strong>{{ file_expiration }}</strong></p>
         {% endif %}

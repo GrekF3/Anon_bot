@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="ru">
+<html prefix="og: //ogp.me/ns#" lang="ru">
 
 <head>
     <meta charset="UTF-8">
@@ -16,17 +16,16 @@
     <link rel="mask-icon" href="{% static "favicon/safari-pinned-tab.svg" %}" color="#5bbad5">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
-    <meta property="og:title" content="AnonLoader - Бесплатный и анонимный файлообменник" />
-    <meta property="og:description" content="Бесплатный и анонимный файлообменник для безопасных и конфиденциальных загрузок. Поддержка временных и одноразовых ссылок, шифрование файлов." />
-    <meta property="og:url" content="https://anonloader.io/" />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="{% static 'images/base.png' %}" />
-    <meta property="og:site_name" content="AnonLoader" />
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="AnonLoader - Бесплатный и анонимный файлообменник.">
+    <meta property="og:url" content="https://anonloader.io/">
+    <meta property="og:image" content="https://anonloader.io/static/images/base.png">
+    <meta property="og:description" content="Бесплатный и анонимный файлообменник для безопасных и конфиденциальных загрузок. Поддержка временных и одноразовых ссылок, шифрование файлов.">
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="AnonLoader - Бесплатный и анонимный файлообменник" />
     <meta name="twitter:description" content="Бесплатный и анонимный файлообменник для безопасных и конфиденциальных загрузок. Поддержка временных и одноразовых ссылок, шифрование файлов." />
-    <meta name="twitter:image" content="{% static 'images/base.png' %}" />
+    <meta name="twitter:image" content="https://anonloader.io/static/images/base.png" />
     
     <meta name="description" content="AnonLoader - Бесплатный и анонимный файлообменник для безопасных и конфиденциальных загрузок. Поддержка временных и одноразовых ссылок, шифрование файлов, анонимная отправка и получение файлов без регистрации.">
     <meta name="keywords" content="анонимный загрузчик, бесплатный файлообменник, безопасные загрузки, анонимный обмен файлами, временные файлы, зашифрованные загрузки, отправка файлов без регистрации, быстрое деление файлами, анонимные файлы, конфиденциальные загрузки, файлы без общего доступа, защищенные загрузки, обмен большими файлами, одноразовые загрузки, легкий обмен файлами">
@@ -43,22 +42,33 @@
     <title>AnonLoader - Бесплатный и анонимный файлообменник.</title>
 
 
-    <!-- Yandex.Metrika counter --> <script type="text/javascript" > (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)}; m[i].l=1*new Date(); for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }} k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)}) (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym"); ym(98377937, "init", { clickmap:true, trackLinks:true, accurateTrackBounce:true }); </script> <noscript><div><img src="https://mc.yandex.ru/watch/98377937" style="position:absolute; left:-9999px;" alt="" /></div></noscript> <!-- /Yandex.Metrika counter -->
+    <script type="text/javascript" > (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)}; m[i].l=1*new Date(); for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }} k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)}) (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym"); ym(98377937, "init", { clickmap:true, trackLinks:true, accurateTrackBounce:true }); </script> <noscript><div><img src="https://mc.yandex.ru/watch/98377937" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+
+    <script>window.yaContextCb=window.yaContextCb||[]</script>
+    <script src="https://yandex.ru/ads/system/context.js" async></script>
 </head>
 
 <body>
     <div class="container main-container">
         <div class="row justify-content-center">
             <div class="col-lg-7 col-md-9 col-sm-12 mb-4 main-content">
-                <section class="d-flex flex-column flex-lg justify-content-center-row gap-3 mt-4">
-                    {% for banner in ads_banners %}
-                        {% if banner.is_active %}
-                        <a target="_blank" rel="noopener noreferrer" href="{{banner.link}}">
-                            <img alt="{{banner.title}}" loading="lazy" width="1200" height="600" decoding="async" 
-                                src="{{ banner.image.url }}" class="img-fluid" style="color: transparent;">
+                <section class="d-flex flex-column flex-lg-row justify-content-center gap-3 mt-4">
+                    {% if ads_banners and ads_banners.0.is_active %} 
+                        <a target="_blank" rel="noopener noreferrer" href="{{ ads_banners.0.link }}">
+                            <img alt="{{ ads_banners.0.title|default:"Banner" }}" loading="lazy" width="1200" height="600" decoding="async" 
+                                 src="{{ ads_banners.0.image.url }}" class="img-fluid" style="color: transparent;">
                         </a>
-                        {% endif %}
-                    {% endfor %}
+                    {% else %}
+                        <div id="yandex_rtb_R-A-12240008-1"></div>
+                        <script>
+                        window.yaContextCb.push(() => {
+                            Ya.Context.AdvManager.render({
+                                "blockId": "R-A-12240008-1",
+                                "renderTo": "yandex_rtb_R-A-12240008-1"
+                            })
+                        })
+                        </script>
+                    {% endif %}
                 </section>
                 <div class="container mt-4">
                     <h1>Введите Ваш ключ:</h1>
@@ -94,11 +104,6 @@
     
                         <button type="submit" class="btn btn-success w-100 mt-3" disabled>Загрузить файл</button>
                     </form>
-                    <div id="loadingIndicator" class="loading-indicator" style="display: none;">
-                        <p>Отправка файла, пожалуйста, подождите...</p>
-                        <div class="loader">
-                        </div>
-                    </div>
     
                     <div id="uploadStatus" class="status-message mt-3">
                         {% if error_file_message %}
@@ -132,6 +137,14 @@
 
 
         </div>
+    </div>
+    <div id="overlay">
+        <div class="loader-dots">
+            <div></div>
+            <div></div>
+            <div></div>
+        </div>
+        <p id="uploadStatusText">Загрузка файла...</p>
     </div>
     <script src="{% static 'js/main.js' %}"></script>
 </body>

@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     'anon_bot_manager',
     'anon_support_manager',
     'channels',
+    'django.contrib.sitemaps',
 ]
 
 ASGI_APPLICATION = 'file_manager.asgi.application'
